@@ -5,10 +5,20 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
+  useRouteLoaderData,
+  type LoaderFunction,
 } from "react-router";
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import {
+  PreventFlashOnWrongTheme,
+  ThemeProvider,
+  useTheme,
+} from "remix-themes";
+import { themeSessionResolver } from "./sessions.server";
+import clsx from "clsx";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -23,17 +33,41 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export const loader: LoaderFunction = async ({ request }) => {
+  const { getTheme } = await themeSessionResolver(request);
+
+  return {
+    theme: getTheme(),
+  };
+};
+
+export default function AppWithProviders() {
+  const data = useLoaderData();
   return (
-    <html lang="en">
+    <ThemeProvider
+      specifiedTheme={data.theme}
+      themeAction="/action/set-theme"
+      disableTransitionOnThemeChange={true}
+    >
+      <App />
+    </ThemeProvider>
+  );
+}
+
+function App() {
+  const data = useLoaderData();
+  const [theme] = useTheme();
+  return (
+    <html lang="en" data-theme={theme ?? ""} className={clsx(theme)}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
+        <PreventFlashOnWrongTheme ssrTheme={Boolean(data.theme)} />
         <Links />
       </head>
       <body>
-        {children}
+        <Outlet />
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -41,8 +75,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function App() {
-  return <Outlet />;
+export function HydrateFallback() {
+  return <h1>Loading...</h1>;
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

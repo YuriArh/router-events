@@ -1,7 +1,15 @@
+import { Button } from "~/shared/ui/button";
 import logoDark from "./logo-dark.svg";
 import logoLight from "./logo-light.svg";
+import { Theme, useTheme } from "remix-themes";
+import { useEffect } from "react";
 
 export function Welcome() {
+  const [theme, setTheme, { definedBy }] = useTheme();
+
+  useEffect(() => {
+    console.log({ theme, definedBy });
+  }, [definedBy, theme]);
   return (
     <main className="flex items-center justify-center pt-16 pb-4">
       <div className="flex-1 flex flex-col items-center gap-16 min-h-0">
@@ -19,11 +27,14 @@ export function Welcome() {
             />
           </div>
         </header>
+
         <div className="max-w-[300px] w-full space-y-6 px-4">
           <nav className="rounded-3xl border border-gray-200 p-6 dark:border-gray-700 space-y-4">
             <p className="leading-6 text-gray-700 dark:text-gray-200 text-center">
               What&apos;s next?
             </p>
+            <Button onClick={() => setTheme(Theme.LIGHT)}>Button</Button>
+            <Button onClick={() => setTheme(Theme.DARK)}>Dark</Button>
             <ul>
               {resources.map(({ href, text, icon }) => (
                 <li key={href}>
