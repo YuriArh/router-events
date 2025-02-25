@@ -1,10 +1,10 @@
-import {
-  Map as RMap,
-  GeolocateControl,
-  NavigationControl,
-} from "react-map-gl/maplibre";
 import { Theme, useTheme } from "remix-themes";
 import { useMapController } from "../hooks/useMapController";
+import RMap, {
+  GeolocateControl,
+  NavigationControl,
+} from "@vis.gl/react-maplibre";
+import { getPublicEnv } from "env.common";
 
 export function CustomMap() {
   const { viewState, handleMove } = useMapController();
@@ -15,9 +15,9 @@ export function CustomMap() {
     <RMap
       {...viewState}
       style={{ flex: 1 }}
-      mapStyle={`https://api.maptiler.com/maps/streets-v2${
+      mapStyle={`https://api.maptiler.com/maps/aquarelle${
         theme === Theme.DARK ? "-dark" : ""
-      }/style.json?key=${env.NEXT_PUBLIC_MAP_KEY}`}
+      }/style.json?key=${getPublicEnv().maptilerKey}`}
       onMove={handleMove}
       initialViewState={{ zoom: 14 }}
     >

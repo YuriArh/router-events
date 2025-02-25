@@ -19,6 +19,9 @@ import {
 } from "remix-themes";
 import { themeSessionResolver } from "./sessions.server";
 import clsx from "clsx";
+import { getPublicEnvToExpose } from "env.server";
+import { PublicEnv } from "./public-env";
+import "maplibre-gl/dist/maplibre-gl.css";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -33,24 +36,28 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
-export const loader: LoaderFunction = async ({ request }) => {
+export const loader = async ({ request }: Route.LoaderArgs) => {
   const { getTheme } = await themeSessionResolver(request);
 
   return {
     theme: getTheme(),
+    publicEnv: getPublicEnvToExpose(),
   };
 };
 
-export default function AppWithProviders() {
-  const data = useLoaderData();
+export default function AppWithProviders({ loaderData }: Route.ComponentProps) {
+  const { theme, publicEnv } = loaderData;
+
   return (
-    <ThemeProvider
-      specifiedTheme={data.theme}
-      themeAction="/action/set-theme"
-      disableTransitionOnThemeChange={true}
-    >
-      <App />
-    </ThemeProvider>
+    <>
+      <ThemeProvider
+        specifiedTheme={theme}
+        themeAction="/action/set-theme"
+        disableTransitionOnThemeChange={true}
+      >
+        <App />
+      </ThemeProvider>
+    </>
   );
 }
 
@@ -67,6 +74,7 @@ function App() {
         <Links />
       </head>
       <body>
+        <PublicEnv {...data.publicEnv} />
         <Outlet />
         <ScrollRestoration />
         <Scripts />
