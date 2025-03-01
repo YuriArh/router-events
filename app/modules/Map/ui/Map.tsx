@@ -14,7 +14,7 @@ export function CustomMap() {
   return (
     <RMap
       {...viewState}
-      style={{ flex: 1 }}
+      style={{ flex: 1, borderTopRightRadius: 10, borderTopLeftRadius: 10 }}
       mapStyle={`https://api.maptiler.com/maps/aquarelle${
         theme === Theme.DARK ? "-dark" : ""
       }/style.json?key=${getPublicEnv().maptilerKey}`}

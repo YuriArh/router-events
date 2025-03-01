@@ -1,3 +1,9 @@
 {
-  "greeting": "Hello"
+  "greeting": "Hello",
+  "Header": "Header",
+  "register": "Register",
+  "login": "Login",
+  "Register": {
+    "success": "Confirm your email to continue"
+  }
 }

@@ -1,3 +1,9 @@
 {
-  "greeting": "Привет"
+  "greeting": "Привет",
+  "Header": "Шапка",
+  "register": "Регистрация",
+  "login": "Вход",
+  "Register": {
+    "success": "Подтвердите ваш email для продолжения"
+  }
 }

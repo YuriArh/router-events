@@ -22,6 +22,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import i18next from "./i18next.server";
 import { useTranslation } from "react-i18next";
 import { useChangeLanguage } from "remix-i18next/react";
+import { Header } from "./modules/header";
+import { getSupabaseServerClient } from "./supabase.server";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -39,10 +41,17 @@ export const links: Route.LinksFunction = () => [
 export const loader = async ({ request }: Route.LoaderArgs) => {
   const { getTheme } = await themeSessionResolver(request);
   let locale = await i18next.getLocale(request);
+
+  const headersToSet = new Headers();
+  const { supabase } = getSupabaseServerClient(request, headersToSet);
+
+  const { data } = await supabase.auth.getUser();
+
   return {
     theme: getTheme(),
     publicEnv: getPublicEnvToExpose(),
     locale,
+    user: data.user,
   };
 };
 
@@ -96,8 +105,9 @@ function App() {
         <PreventFlashOnWrongTheme ssrTheme={Boolean(dataTheme)} />
         <Links />
       </head>
-      <body>
+      <body className="flex flex-1 flex-col h-full">
         <PublicEnv {...publicEnv} />
+        <Header />
         <Outlet />
         <ScrollRestoration />
         <Scripts />
