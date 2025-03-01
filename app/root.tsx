@@ -6,10 +6,7 @@ import {
   Scripts,
   ScrollRestoration,
   useLoaderData,
-  useRouteLoaderData,
-  type LoaderFunction,
 } from "react-router";
-
 import type { Route } from "./+types/root";
 import "./app.css";
 import {
@@ -22,6 +19,9 @@ import clsx from "clsx";
 import { getPublicEnvToExpose } from "env.server";
 import { PublicEnv } from "./public-env";
 import "maplibre-gl/dist/maplibre-gl.css";
+import i18next from "./i18next.server";
+import { useTranslation } from "react-i18next";
+import { useChangeLanguage } from "remix-i18next/react";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -38,15 +38,24 @@ export const links: Route.LinksFunction = () => [
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
   const { getTheme } = await themeSessionResolver(request);
-
+  let locale = await i18next.getLocale(request);
   return {
     theme: getTheme(),
     publicEnv: getPublicEnvToExpose(),
+    locale,
   };
 };
 
+export let handle = {
+  // In the handle export, we can add a i18n key with namespaces our route
+  // will need to load. This key can be a single string or an array of strings.
+  // TIP: In most cases, you should set this to your defaultNS from your i18n config
+  // or if you did not set one, set it to the i18next default namespace "translation"
+  i18n: "common",
+};
+
 export default function AppWithProviders({ loaderData }: Route.ComponentProps) {
-  const { theme, publicEnv } = loaderData;
+  const { theme } = loaderData;
 
   return (
     <>
@@ -62,19 +71,33 @@ export default function AppWithProviders({ loaderData }: Route.ComponentProps) {
 }
 
 function App() {
-  const data = useLoaderData();
+  const { locale, theme: dataTheme, publicEnv } = useLoaderData();
   const [theme] = useTheme();
+
+  let { i18n } = useTranslation();
+
+  // This hook will change the i18n instance language to the current locale
+  // detected by the loader, this way, when we do something to change the
+  // language, this locale will change and i18next will load the correct
+  // translation files
+  useChangeLanguage(locale);
+
   return (
-    <html lang="en" data-theme={theme ?? ""} className={clsx(theme)}>
+    <html
+      lang={locale}
+      dir={i18n.dir()}
+      data-theme={theme ?? ""}
+      className={clsx(theme)}
+    >
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
-        <PreventFlashOnWrongTheme ssrTheme={Boolean(data.theme)} />
+        <PreventFlashOnWrongTheme ssrTheme={Boolean(dataTheme)} />
         <Links />
       </head>
       <body>
-        <PublicEnv {...data.publicEnv} />
+        <PublicEnv {...publicEnv} />
         <Outlet />
         <ScrollRestoration />
         <Scripts />
