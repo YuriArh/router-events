@@ -3,8 +3,6 @@ import { camelKeys } from "string-ts";
 
 const publicEnvSchema = z.object({
   MAPTILER_KEY: z.string(),
-  SUPABASE_URL: z.string(),
-  SUPABASE_KEY: z.string(),
 });
 
 const makeTypedEnv = <T>(schema: { parse: (data: unknown) => T }) => {

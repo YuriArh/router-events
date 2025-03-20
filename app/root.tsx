@@ -7,8 +7,15 @@ import {
   ScrollRestoration,
   useLoaderData,
 } from "react-router";
+import { rootAuthLoader } from "@clerk/react-router/ssr.server";
+import {
+  ClerkProvider,
+  SignedIn,
+  SignedOut,
+  UserButton,
+  SignInButton,
+} from "@clerk/react-router";
 import type { Route } from "./+types/root";
-import "./app.css";
 import {
   PreventFlashOnWrongTheme,
   ThemeProvider,
@@ -18,12 +25,14 @@ import { themeSessionResolver } from "./sessions.server";
 import clsx from "clsx";
 import { getPublicEnvToExpose } from "env.server";
 import { PublicEnv } from "./public-env";
-import "maplibre-gl/dist/maplibre-gl.css";
+import maplibre from "maplibre-gl/dist/maplibre-gl.css?url";
 import i18next from "./i18next.server";
 import { useTranslation } from "react-i18next";
 import { useChangeLanguage } from "remix-i18next/react";
 import { Header } from "./modules/header";
-import { getSupabaseServerClient } from "./supabase.server";
+import stylesheet from "./app.css?url";
+import { ruRU, enUS } from "@clerk/localizations";
+import { dark } from "@clerk/themes";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -36,26 +45,24 @@ export const links: Route.LinksFunction = () => [
     rel: "stylesheet",
     href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
   },
+  { rel: "stylesheet", href: stylesheet },
+  { rel: "stylesheet", href: maplibre },
 ];
 
-export const loader = async ({ request }: Route.LoaderArgs) => {
-  const { getTheme } = await themeSessionResolver(request);
-  let locale = await i18next.getLocale(request);
+export const loader = async (args: Route.LoaderArgs) => {
+  return rootAuthLoader(args, async (args) => {
+    const { getTheme } = await themeSessionResolver(args.request);
+    const locale = await i18next.getLocale(args.request);
 
-  const headersToSet = new Headers();
-  const { supabase } = getSupabaseServerClient(request, headersToSet);
-
-  const { data } = await supabase.auth.getUser();
-
-  return {
-    theme: getTheme(),
-    publicEnv: getPublicEnvToExpose(),
-    locale,
-    user: data.user,
-  };
+    return {
+      theme: getTheme(),
+      publicEnv: getPublicEnvToExpose(),
+      locale,
+    };
+  });
 };
 
-export let handle = {
+export const handle = {
   // In the handle export, we can add a i18n key with namespaces our route
   // will need to load. This key can be a single string or an array of strings.
   // TIP: In most cases, you should set this to your defaultNS from your i18n config
@@ -64,26 +71,25 @@ export let handle = {
 };
 
 export default function AppWithProviders({ loaderData }: Route.ComponentProps) {
-  const { theme } = loaderData;
+  const { theme, locale } = loaderData;
 
   return (
-    <>
-      <ThemeProvider
-        specifiedTheme={theme}
-        themeAction="/action/set-theme"
-        disableTransitionOnThemeChange={true}
-      >
-        <App />
-      </ThemeProvider>
-    </>
+    <ThemeProvider
+      specifiedTheme={theme}
+      themeAction="/action/set-theme"
+      disableTransitionOnThemeChange={true}
+    >
+      <App />
+    </ThemeProvider>
   );
 }
 
 function App() {
-  const { locale, theme: dataTheme, publicEnv } = useLoaderData();
+  const loaderData = useLoaderData();
+  const { locale, theme: dataTheme, publicEnv } = loaderData;
   const [theme] = useTheme();
 
-  let { i18n } = useTranslation();
+  const { i18n } = useTranslation();
 
   // This hook will change the i18n instance language to the current locale
   // detected by the loader, this way, when we do something to change the
@@ -97,21 +103,32 @@ function App() {
       dir={i18n.dir()}
       data-theme={theme ?? ""}
       className={clsx(theme)}
+      suppressHydrationWarning
     >
-      <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <Meta />
-        <PreventFlashOnWrongTheme ssrTheme={Boolean(dataTheme)} />
-        <Links />
-      </head>
-      <body className="flex flex-1 flex-col h-full">
-        <PublicEnv {...publicEnv} />
-        <Header />
-        <Outlet />
-        <ScrollRestoration />
-        <Scripts />
-      </body>
+      <ClerkProvider
+        loaderData={loaderData}
+        signUpFallbackRedirectUrl="/"
+        signInFallbackRedirectUrl="/"
+        localization={i18n.language === "en" ? enUS : ruRU}
+        appearance={{
+          baseTheme: theme === "dark" ? dark : undefined,
+        }}
+      >
+        <head>
+          <meta charSet="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <Meta />
+          <PreventFlashOnWrongTheme ssrTheme={Boolean(dataTheme)} />
+          <Links />
+        </head>
+        <body className="flex flex-1 flex-col h-full">
+          <PublicEnv {...publicEnv} />
+          <Header />
+          <Outlet />
+          <ScrollRestoration />
+          <Scripts />
+        </body>
+      </ClerkProvider>
     </html>
   );
 }

@@ -1,11 +1,11 @@
+import { UserButton } from "@clerk/react-router";
+import { SignedIn } from "@clerk/react-router";
+import { SignedOut, SignInButton } from "@clerk/react-router";
 import { useTranslation } from "react-i18next";
-import { Link, useLoaderData } from "react-router";
 import { Theme, useTheme } from "remix-themes";
-import { Avatar, AvatarFallback, AvatarImage } from "~/shared/ui/avatar";
 import { Button } from "~/shared/ui/button";
 
 export const Header = () => {
-  const { user } = useLoaderData();
   const { t, i18n } = useTranslation();
   const [_, setTheme] = useTheme();
 
@@ -20,19 +20,12 @@ export const Header = () => {
         <Button onClick={() => setTheme(Theme.LIGHT)}>Light</Button>
         <Button onClick={() => setTheme(Theme.DARK)}>Dark</Button>
       </div>
-      {user ? (
-        <Link to="/login">
-          <Avatar>
-            <AvatarImage />
-            <AvatarFallback>CN</AvatarFallback>
-          </Avatar>
-        </Link>
-      ) : (
-        <div className="flex">
-          <Link to="/register">{t("register")}</Link>
-          <Link to="/login">{t("login")}</Link>
-        </div>
-      )}
+      <SignedOut>
+        <SignInButton mode="modal" />
+      </SignedOut>
+      <SignedIn>
+        <UserButton />
+      </SignedIn>
     </div>
   );
 };
