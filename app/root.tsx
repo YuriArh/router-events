@@ -14,6 +14,7 @@ import {
   SignedOut,
   UserButton,
   SignInButton,
+  useAuth,
 } from "@clerk/react-router";
 import type { Route } from "./+types/root";
 import {
@@ -33,6 +34,9 @@ import { Header } from "./modules/header";
 import stylesheet from "./app.css?url";
 import { ruRU, enUS } from "@clerk/localizations";
 import { dark } from "@clerk/themes";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { ConvexReactClient } from "convex/react";
+import { useState } from "react";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -71,7 +75,7 @@ export const handle = {
 };
 
 export default function AppWithProviders({ loaderData }: Route.ComponentProps) {
-  const { theme, locale } = loaderData;
+  const { theme } = loaderData;
 
   return (
     <ThemeProvider
@@ -85,8 +89,9 @@ export default function AppWithProviders({ loaderData }: Route.ComponentProps) {
 }
 
 function App() {
-  const loaderData = useLoaderData();
+  const loaderData = useLoaderData<typeof loader>();
   const { locale, theme: dataTheme, publicEnv } = loaderData;
+  const [convex] = useState(() => new ConvexReactClient(publicEnv.CONVEX_URL));
   const [theme] = useTheme();
 
   const { i18n } = useTranslation();
@@ -114,20 +119,25 @@ function App() {
           baseTheme: theme === "dark" ? dark : undefined,
         }}
       >
-        <head>
-          <meta charSet="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <Meta />
-          <PreventFlashOnWrongTheme ssrTheme={Boolean(dataTheme)} />
-          <Links />
-        </head>
-        <body className="flex flex-1 flex-col h-full">
-          <PublicEnv {...publicEnv} />
-          <Header />
-          <Outlet />
-          <ScrollRestoration />
-          <Scripts />
-        </body>
+        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+          <head>
+            <meta charSet="utf-8" />
+            <meta
+              name="viewport"
+              content="width=device-width, initial-scale=1"
+            />
+            <Meta />
+            <PreventFlashOnWrongTheme ssrTheme={Boolean(dataTheme)} />
+            <Links />
+          </head>
+          <body className="flex flex-1 flex-col h-full">
+            <PublicEnv {...publicEnv} />
+            <Header />
+            <Outlet />
+            <ScrollRestoration />
+            <Scripts />
+          </body>
+        </ConvexProviderWithClerk>
       </ClerkProvider>
     </html>
   );

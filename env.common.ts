@@ -3,6 +3,7 @@ import { camelKeys } from "string-ts";
 
 const publicEnvSchema = z.object({
   MAPTILER_KEY: z.string(),
+  CONVEX_URL: z.string(),
 });
 
 const makeTypedEnv = <T>(schema: { parse: (data: unknown) => T }) => {
