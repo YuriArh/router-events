@@ -1,5 +1,15 @@
-import { useCallback, useLayoutEffect, useState } from "react";
-import type { ViewStateChangeEvent } from "react-map-gl/maplibre";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import maplibregl from "maplibre-gl";
+import { Theme, useTheme } from "remix-themes";
+import { getPublicEnv } from "env.common";
+import type { ViewStateChangeEvent } from "node_modules/@vis.gl/react-maplibre/dist/types/events";
+import consola from "consola";
 
 /**
  * Controller for Map
@@ -10,22 +20,25 @@ import type { ViewStateChangeEvent } from "react-map-gl/maplibre";
  */
 
 export function useMapController() {
-  const [viewState, setViewState] = useState<{
-    latitude: number;
-    longitude: number;
-    zoom: number;
-  } | null>(null);
+  const map = useRef<maplibregl.Map | null>(null);
+  const [theme] = useTheme();
+  const API_KEY = getPublicEnv().maptilerKey;
+  const mapContainer = useRef<HTMLDivElement>(null);
+
+  const lng = 139.753;
+  const lat = 35.6844;
+  const zoom = 14;
 
   /**
    * init user location
    */
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
 
-          setViewState({ latitude, longitude, zoom: 14 });
+          map.current?.setCenter([longitude, latitude]);
         },
 
         (error) => {
@@ -37,12 +50,31 @@ export function useMapController() {
     }
   }, []);
 
-  /**
-   * handles changes in map state
-   */
-  const handleMove = useCallback(({ viewState }: ViewStateChangeEvent) => {
-    setViewState({ ...viewState });
-  }, []);
+  useEffect(() => {
+    if (map.current) return; // stops map from intializing more than once
 
-  return { viewState, setViewState, handleMove };
+    map.current = new maplibregl.Map({
+      container: mapContainer.current as HTMLElement,
+      style: `https://api.maptiler.com/maps/aquarelle${
+        theme === Theme.DARK ? "-dark" : ""
+      }/style.json?key=${API_KEY}`,
+      center: [lng, lat],
+      zoom: zoom,
+    });
+
+    map.current.addControl(new maplibregl.NavigationControl(), "top-left");
+    map.current.addControl(new maplibregl.GeolocateControl({}), "bottom-left");
+  }, [API_KEY, theme]);
+
+  useEffect(() => {
+    if (map.current) {
+      map.current.setStyle(
+        `https://api.maptiler.com/maps/aquarelle${
+          theme === Theme.DARK ? "-dark" : ""
+        }/style.json?key=${API_KEY}`
+      );
+    }
+  }, [theme, API_KEY]);
+
+  return { mapContainer };
 }
