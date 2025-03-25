@@ -3,6 +3,7 @@ import { SignedIn } from "@clerk/react-router";
 import { SignedOut, SignInButton } from "@clerk/react-router";
 import { useTranslation } from "react-i18next";
 import { Theme, useTheme } from "remix-themes";
+import { NewEvent } from "~/modules/new-event";
 import { Button } from "~/shared/ui/button";
 
 export const Header = () => {
@@ -20,12 +21,63 @@ export const Header = () => {
         <Button onClick={() => setTheme(Theme.LIGHT)}>Light</Button>
         <Button onClick={() => setTheme(Theme.DARK)}>Dark</Button>
       </div>
+      <NewEvent />
       <SignedOut>
         <SignInButton mode="modal" />
       </SignedOut>
       <SignedIn>
-        <UserButton />
+        <UserButton>
+          {/* You can pass the content as a component */}
+          <UserButton.UserProfilePage
+            label="Custom Page"
+            url="custom"
+            labelIcon={<DotIcon />}
+          >
+            <CustomPage />
+          </UserButton.UserProfilePage>
+
+          {/* You can also pass the content as direct children */}
+          <UserButton.UserProfilePage
+            label="Terms"
+            labelIcon={<DotIcon />}
+            url="terms"
+          >
+            <div>
+              <h1>Custom Terms Page</h1>
+              <p>This is the content of the custom terms page.</p>
+            </div>
+          </UserButton.UserProfilePage>
+
+          <UserButton.MenuItems>
+            <UserButton.Action
+              label="Open chat"
+              labelIcon={<DotIcon />}
+              onClick={() => alert("init chat")}
+            />
+          </UserButton.MenuItems>
+        </UserButton>
       </SignedIn>
+    </div>
+  );
+};
+
+const DotIcon = () => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 512 512"
+      fill="currentColor"
+    >
+      <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
+    </svg>
+  );
+};
+
+const CustomPage = () => {
+  return (
+    <div>
+      <h1>Custom page</h1>
+      <p>This is the content of the custom page.</p>
     </div>
   );
 };

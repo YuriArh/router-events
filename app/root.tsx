@@ -37,6 +37,9 @@ import { dark } from "@clerk/themes";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 import { useState } from "react";
+import { Toaster } from "./shared/ui/sonner";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ConvexQueryClient } from "@convex-dev/react-query";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -101,6 +104,16 @@ function App() {
   // language, this locale will change and i18next will load the correct
   // translation files
   useChangeLanguage(locale);
+  const convexQueryClient = new ConvexQueryClient(convex);
+
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        queryKeyHashFn: convexQueryClient.hashFn(),
+        queryFn: convexQueryClient.queryFn(),
+      },
+    },
+  });
 
   return (
     <html
@@ -120,23 +133,26 @@ function App() {
         }}
       >
         <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-          <head>
-            <meta charSet="utf-8" />
-            <meta
-              name="viewport"
-              content="width=device-width, initial-scale=1"
-            />
-            <Meta />
-            <PreventFlashOnWrongTheme ssrTheme={Boolean(dataTheme)} />
-            <Links />
-          </head>
-          <body className="flex flex-1 flex-col h-full">
-            <PublicEnv {...publicEnv} />
-            <Header />
-            <Outlet />
-            <ScrollRestoration />
-            <Scripts />
-          </body>
+          <QueryClientProvider client={queryClient}>
+            <head>
+              <meta charSet="utf-8" />
+              <meta
+                name="viewport"
+                content="width=device-width, initial-scale=1"
+              />
+              <Meta />
+              <PreventFlashOnWrongTheme ssrTheme={Boolean(dataTheme)} />
+              <Links />
+            </head>
+            <body className="flex flex-1 flex-col h-full">
+              <PublicEnv {...publicEnv} />
+              <Header />
+              <Outlet />
+              <Toaster />
+              <ScrollRestoration />
+              <Scripts />
+            </body>
+          </QueryClientProvider>
         </ConvexProviderWithClerk>
       </ClerkProvider>
     </html>

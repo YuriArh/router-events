@@ -5,5 +5,10 @@
   "login": "Login",
   "Register": {
     "success": "Confirm your email to continue"
+  },
+  "NewEvent": {
+    "create": "Create event",
+    "title": "New event",
+    "description": "Create new event"
   }
 }

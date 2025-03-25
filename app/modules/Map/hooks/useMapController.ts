@@ -1,29 +1,25 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import { Theme, useTheme } from "remix-themes";
 import { getPublicEnv } from "env.common";
-import type { ViewStateChangeEvent } from "node_modules/@vis.gl/react-maplibre/dist/types/events";
-import consola from "consola";
+
+const API_KEY = getPublicEnv().maptilerKey;
 
 /**
  * Controller for Map
  * @date 3/13/2024 - 10:17:04 PM
- *
- * @export
- * @returns {{ viewState: any; setViewState: any; handleMove: any; events: any; loading: any; }}
  */
-
-export function useMapController() {
+export function useMapController({
+  onEventClick,
+  shouldMarkerAddedOnClick,
+}: {
+  onEventClick: (e: maplibregl.MapMouseEvent) => void;
+  shouldMarkerAddedOnClick?: boolean;
+}) {
   const map = useRef<maplibregl.Map | null>(null);
-  const [theme] = useTheme();
-  const API_KEY = getPublicEnv().maptilerKey;
   const mapContainer = useRef<HTMLDivElement>(null);
+
+  const [theme] = useTheme();
 
   const lng = 139.753;
   const lat = 35.6844;
@@ -64,7 +60,30 @@ export function useMapController() {
 
     map.current.addControl(new maplibregl.NavigationControl(), "top-left");
     map.current.addControl(new maplibregl.GeolocateControl({}), "bottom-left");
-  }, [API_KEY, theme]);
+  }, []);
+
+  useEffect(() => {
+    const Marker: maplibregl.Marker = new maplibregl.Marker({
+      color: "#FF0000",
+    });
+
+    const handleClick = (e: maplibregl.MapMouseEvent) => {
+      Marker?.remove();
+
+      Marker.setLngLat([e.lngLat.lng, e.lngLat.lat]).addTo(
+        map.current as maplibregl.Map
+      );
+
+      onEventClick(e);
+    };
+
+    map.current?.on("click", handleClick);
+
+    if (!shouldMarkerAddedOnClick) {
+      map.current?.off("click", handleClick);
+      Marker?.remove();
+    }
+  }, [shouldMarkerAddedOnClick, onEventClick]);
 
   useEffect(() => {
     if (map.current) {
@@ -74,7 +93,7 @@ export function useMapController() {
         }/style.json?key=${API_KEY}`
       );
     }
-  }, [theme, API_KEY]);
+  }, [theme]);
 
   return { mapContainer };
 }
