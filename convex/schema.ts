@@ -5,8 +5,11 @@ export default defineSchema({
   events: defineTable({
     title: v.string(),
     description: v.optional(v.string()),
-    longitude: v.number(),
-    latitude: v.number(),
+    location: v.object({
+      title: v.string(),
+      latitude: v.number(),
+      longitude: v.number(),
+    }),
     user: v.id("users"),
     date: v.optional(v.string()),
   }).index("byUser", ["user"]),

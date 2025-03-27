@@ -28,9 +28,12 @@ export const create = mutation({
     event: v.object({
       title: v.string(),
       description: v.optional(v.string()),
-      longitude: v.number(),
-      latitude: v.number(),
       date: v.optional(v.string()),
+      location: v.object({
+        title: v.string(),
+        latitude: v.number(),
+        longitude: v.number(),
+      }),
     }),
   },
   handler: async (ctx, { event }) => {

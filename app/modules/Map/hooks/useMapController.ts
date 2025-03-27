@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import { Theme, useTheme } from "remix-themes";
 import { getPublicEnv } from "env.common";
+import type { LocationInfo } from "~/shared/types/LocationInfo";
+import type { Doc } from "convex/_generated/dataModel";
 
 const API_KEY = getPublicEnv().maptilerKey;
 
@@ -12,9 +14,11 @@ const API_KEY = getPublicEnv().maptilerKey;
 export function useMapController({
   onEventClick,
   shouldMarkerAddedOnClick,
+  markers = [],
 }: {
   onEventClick: (e: maplibregl.MapMouseEvent) => void;
   shouldMarkerAddedOnClick?: boolean;
+  markers?: Doc<"events">[];
 }) {
   const map = useRef<maplibregl.Map | null>(null);
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -60,29 +64,52 @@ export function useMapController({
 
     map.current.addControl(new maplibregl.NavigationControl(), "top-left");
     map.current.addControl(new maplibregl.GeolocateControl({}), "bottom-left");
-  }, []);
+  }, [theme]);
 
   useEffect(() => {
-    const Marker: maplibregl.Marker = new maplibregl.Marker({
-      color: "#FF0000",
-    });
+    // Create a single marker reference
+    let currentMarker: maplibregl.Marker | null = null;
 
     const handleClick = (e: maplibregl.MapMouseEvent) => {
-      Marker?.remove();
+      // Remove existing marker if there is one
+      if (currentMarker) {
+        currentMarker.remove();
+      }
 
-      Marker.setLngLat([e.lngLat.lng, e.lngLat.lat]).addTo(
-        map.current as maplibregl.Map
-      );
+      // Create a new marker at the clicked location
+      currentMarker = new maplibregl.Marker({
+        color: "#FF0000",
+      })
+        .setLngLat([e.lngLat.lng, e.lngLat.lat])
+        .addTo(map.current as maplibregl.Map);
 
       onEventClick(e);
     };
 
-    map.current?.on("click", handleClick);
+    // Clean up function to remove marker and event listener
+    const cleanupMapEvents = () => {
+      // Remove the marker if it exists
+      if (currentMarker) {
+        currentMarker.remove();
+        currentMarker = null;
+      }
 
-    if (!shouldMarkerAddedOnClick) {
+      // Remove event listener
       map.current?.off("click", handleClick);
-      Marker?.remove();
+    };
+
+    if (shouldMarkerAddedOnClick) {
+      // Add click event if enabled
+      map.current?.on("click", handleClick);
+    } else {
+      // Clean up when disabled
+      cleanupMapEvents();
     }
+
+    // Clean up when component unmounts or when dependencies change
+    return () => {
+      cleanupMapEvents();
+    };
   }, [shouldMarkerAddedOnClick, onEventClick]);
 
   useEffect(() => {
@@ -94,6 +121,18 @@ export function useMapController({
       );
     }
   }, [theme]);
+
+  useEffect(() => {
+    if (markers) {
+      for (const marker of markers) {
+        new maplibregl.Marker({
+          color: "#EF4444",
+        })
+          .setLngLat([marker.location.longitude, marker.location.latitude])
+          .addTo(map.current as maplibregl.Map);
+      }
+    }
+  }, [markers]);
 
   return { mapContainer };
 }

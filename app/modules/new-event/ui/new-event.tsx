@@ -22,7 +22,7 @@ import { CalendarIcon } from "lucide-react";
 import { Calendar } from "~/shared/ui/calendar";
 import { cn } from "~/lib/utils";
 import { format } from "date-fns";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import { useConvexMutation } from "@convex-dev/react-query";
 import { LoadingButton } from "~/shared/ui/loading-button";
@@ -37,18 +37,24 @@ import {
 import { useSearchParams } from "react-router";
 import { latitude } from "../store/signal";
 import { longitude } from "../store/signal";
+import type { LocationInfo } from "~/shared/types/LocationInfo";
 
 const formSchema = z.object({
   title: z.string().min(1).min(4).max(25),
   description: z.string().optional(),
-  longitude: z.number(),
-  latitude: z.number(),
+
   date: z.coerce.date().optional(),
+  location: z.object({
+    title: z.string(),
+    latitude: z.number(),
+    longitude: z.number(),
+  }),
 });
 
 export const NewEvent = () => {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [locationInfo, setLocationInfo] = useState<LocationInfo | null>(null);
 
   const { mutate, isPending } = useMutation({
     mutationFn: useConvexMutation(api.events.create),
@@ -83,13 +89,38 @@ export const NewEvent = () => {
 
   useEffect(() => {
     const updateFormValues = () => {
-      form.setValue("latitude", latitude.value);
-      form.setValue("longitude", longitude.value);
+      form.setValue("location.latitude", latitude.value);
+      form.setValue("location.longitude", longitude.value);
     };
 
     // Create subscription to signals
     const unsubscribeLat = latitude.subscribe(updateFormValues);
     const unsubscribeLng = longitude.subscribe(updateFormValues);
+
+    return () => {
+      unsubscribeLat();
+      unsubscribeLng();
+    };
+  }, [form.setValue]);
+
+  useEffect(() => {
+    const doRequest = async () => {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude.value}&lon=${longitude.value}&zoom=18&addressdetails=1`,
+        {
+          headers: {
+            "Accept-Language": "ru",
+          },
+        }
+      );
+      const data = await response.json();
+
+      form.setValue("location.title", data.display_name);
+    };
+
+    // Create subscription to signals
+    const unsubscribeLat = latitude.subscribe(doRequest);
+    const unsubscribeLng = longitude.subscribe(doRequest);
 
     return () => {
       unsubscribeLat();
@@ -115,90 +146,100 @@ export const NewEvent = () => {
         <SheetHeader>
           <SheetTitle>{t("NewEvent.title")}</SheetTitle>
           <SheetDescription>{t("NewEvent.description")}</SheetDescription>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-8 max-w-7xl mx-auto py-10"
-            >
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="supa jusa" type="text" {...field} />
-                    </FormControl>
-                    <FormDescription>title of event</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Placeholder"
-                        className="resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>description of event</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>event date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-[240px] pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <LoadingButton type="submit" loading={isPending}>
-                create event
-              </LoadingButton>
-            </form>
-          </Form>
         </SheetHeader>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-8 max-w-7xl mx-auto py-10 px-10"
+          >
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>title</FormLabel>
+                  <FormControl>
+                    <Input placeholder="supa jusa" type="text" {...field} />
+                  </FormControl>
+                  <FormDescription>title of event</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Placeholder"
+                      className="resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>description of event</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>event date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-[240px] pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="location.title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Location</FormLabel>
+                  <Textarea {...field} readOnly />
+                </FormItem>
+              )}
+            />
+            <LoadingButton type="submit" loading={isPending}>
+              create event
+            </LoadingButton>
+          </form>
+        </Form>
       </SheetContent>
     </Sheet>
   );

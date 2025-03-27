@@ -8,6 +8,7 @@ import { useSearchParams } from "react-router";
 export function CustomMap() {
   const [searchParams, setSearchParams] = useSearchParams();
   const isNewEventModalOpen = searchParams.get("newEvent") === "true";
+  const { data: events } = useQuery(convexQuery(api.events.list, {}));
 
   const { mapContainer } = useMapController({
     onEventClick: (e) => {
@@ -15,9 +16,8 @@ export function CustomMap() {
       longitude.value = e.lngLat.lng;
     },
     shouldMarkerAddedOnClick: isNewEventModalOpen,
+    markers: events,
   });
-
-  const events = useQuery(convexQuery(api.events.list, {}));
 
   return <div ref={mapContainer} className="map flex-1" />;
 }
