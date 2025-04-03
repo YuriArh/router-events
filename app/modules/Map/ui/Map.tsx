@@ -15,7 +15,7 @@ export function CustomMap() {
       latitude.value = e.lngLat.lat;
       longitude.value = e.lngLat.lng;
     },
-    shouldMarkerAddedOnClick: isNewEventModalOpen,
+    newEventMode: isNewEventModalOpen,
     markers: events,
   });
 

@@ -4,8 +4,12 @@ import { Theme, useTheme } from "remix-themes";
 import { getPublicEnv } from "env.common";
 import type { LocationInfo } from "~/shared/types/LocationInfo";
 import type { Doc } from "convex/_generated/dataModel";
+import MarkerIcon from "~/assets/location-pin.png";
+import { useSearchParams } from "react-router";
 
 const API_KEY = getPublicEnv().maptilerKey;
+
+let mapMarkers: maplibregl.Marker[] = [];
 
 /**
  * Controller for Map
@@ -13,15 +17,17 @@ const API_KEY = getPublicEnv().maptilerKey;
  */
 export function useMapController({
   onEventClick,
-  shouldMarkerAddedOnClick,
+  newEventMode,
   markers = [],
 }: {
   onEventClick: (e: maplibregl.MapMouseEvent) => void;
-  shouldMarkerAddedOnClick?: boolean;
+  newEventMode?: boolean;
   markers?: Doc<"events">[];
 }) {
   const map = useRef<maplibregl.Map | null>(null);
   const mapContainer = useRef<HTMLDivElement>(null);
+
+  const [_, setSearchParams] = useSearchParams();
 
   const [theme] = useTheme();
 
@@ -98,7 +104,7 @@ export function useMapController({
       map.current?.off("click", handleClick);
     };
 
-    if (shouldMarkerAddedOnClick) {
+    if (newEventMode) {
       // Add click event if enabled
       map.current?.on("click", handleClick);
     } else {
@@ -110,7 +116,7 @@ export function useMapController({
     return () => {
       cleanupMapEvents();
     };
-  }, [shouldMarkerAddedOnClick, onEventClick]);
+  }, [newEventMode, onEventClick]);
 
   useEffect(() => {
     if (map.current) {
@@ -123,16 +129,46 @@ export function useMapController({
   }, [theme]);
 
   useEffect(() => {
-    if (markers) {
+    if (markers && !newEventMode) {
       for (const marker of markers) {
-        new maplibregl.Marker({
-          color: "#EF4444",
-        })
+        const el = document.createElement("div");
+        el.className = "marker";
+        el.style.backgroundImage = `url(${MarkerIcon})`;
+
+        const bubble = document.createElement("div");
+        bubble.textContent = marker.title || "Event"; // Используйте нужный текст из ваших данных
+        bubble.className = "marker-bubble";
+        if (theme === Theme.DARK) {
+          bubble.style.backgroundColor = "black";
+        } else {
+          bubble.style.backgroundColor = "white";
+        }
+
+        el.appendChild(bubble);
+
+        el.onclick = () => {
+          setSearchParams((prev) => {
+            prev.set("eventId", marker._id);
+            return prev;
+          });
+        };
+
+        const newMarker = new maplibregl.Marker({ element: el })
           .setLngLat([marker.location.longitude, marker.location.latitude])
           .addTo(map.current as maplibregl.Map);
+
+        mapMarkers.push(newMarker);
       }
     }
-  }, [markers]);
+    console.log(newEventMode, mapMarkers);
+    if (mapMarkers.length && newEventMode) {
+      for (const marker of mapMarkers) {
+        console.log(marker);
+        marker.remove();
+      }
+      mapMarkers = [];
+    }
+  }, [markers, newEventMode]);
 
   return { mapContainer };
 }

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "~/shared/ui/button";
-
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,11 +17,11 @@ import {
 import { Input } from "~/shared/ui/input";
 import { Textarea } from "~/shared/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "~/shared/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader, LoaderCircle } from "lucide-react";
 import { Calendar } from "~/shared/ui/calendar";
 import { cn } from "~/lib/utils";
 import { format } from "date-fns";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import { useConvexMutation } from "@convex-dev/react-query";
 import { LoadingButton } from "~/shared/ui/loading-button";
@@ -37,7 +36,7 @@ import {
 import { useSearchParams } from "react-router";
 import { latitude } from "../store/signal";
 import { longitude } from "../store/signal";
-import type { LocationInfo } from "~/shared/types/LocationInfo";
+import { MyDropzone } from "~/shared/ui/dropzone";
 
 const formSchema = z.object({
   title: z.string().min(1).min(4).max(25),
@@ -52,9 +51,12 @@ const formSchema = z.object({
 });
 
 export const NewEvent = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [locationInfo, setLocationInfo] = useState<LocationInfo | null>(null);
+  const generateUploadUrl = useMutation({
+    mutationFn: useConvexMutation(api.events.generateUploadUrl),
+  });
 
   const { mutate, isPending } = useMutation({
     mutationFn: useConvexMutation(api.events.create),
@@ -105,17 +107,22 @@ export const NewEvent = () => {
 
   useEffect(() => {
     const doRequest = async () => {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude.value}&lon=${longitude.value}&zoom=18&addressdetails=1`,
-        {
-          headers: {
-            "Accept-Language": "ru",
-          },
-        }
-      );
-      const data = await response.json();
-
-      form.setValue("location.title", data.display_name);
+      try {
+        setIsLoading(true);
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude.value}&lon=${longitude.value}&zoom=18&addressdetails=1`,
+          {
+            headers: {
+              "Accept-Language": "ru",
+            },
+          }
+        );
+        const data = await response.json();
+        setIsLoading(false);
+        form.setValue("location.title", data.display_name);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     // Create subscription to signals
@@ -142,6 +149,7 @@ export const NewEvent = () => {
         onInteractOutside={(e) => {
           e.preventDefault();
         }}
+        className="min-w-xl"
       >
         <SheetHeader>
           <SheetTitle>{t("NewEvent.title")}</SheetTitle>
@@ -150,7 +158,7 @@ export const NewEvent = () => {
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-8 max-w-7xl mx-auto py-10 px-10"
+            className="space-y-8 w-full mx-auto py-10 px-10"
           >
             <FormField
               control={form.control}
@@ -231,10 +239,17 @@ export const NewEvent = () => {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Location</FormLabel>
-                  <Textarea {...field} readOnly />
+                  {isLoading ? (
+                    <LoaderCircle className=" animate-spin" />
+                  ) : (
+                    <p>{field.value}</p>
+                  )}
+                  <FormDescription>Выберите локацию ивента</FormDescription>
                 </FormItem>
               )}
             />
+            <MyDropzone />
+
             <LoadingButton type="submit" loading={isPending}>
               create event
             </LoadingButton>
