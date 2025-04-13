@@ -12,6 +12,7 @@ export default defineSchema({
     }),
     user: v.id("users"),
     date: v.optional(v.string()),
+    images: v.optional(v.array(v.id("_storage"))),
   }).index("byUser", ["user"]),
   users: defineTable({
     name: v.string(),

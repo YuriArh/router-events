@@ -3,7 +3,6 @@ import { v } from "convex/values";
 import type { WithoutSystemFields } from "convex/server";
 import type { Doc } from "./_generated/dataModel";
 import { getCurrentUserOrThrow } from "./users";
-import { consola } from "consola";
 
 export const get = query({
   args: {
@@ -15,7 +14,11 @@ export const get = query({
 });
 
 export const list = query(async (ctx) => {
-  return await ctx.db.query("events").collect();
+  const events = await ctx.db.query("events").collect();
+  return events.map((event) => ({
+    ...event,
+    images: event.images?.map((image) => ctx.storage.getUrl(image)),
+  }));
 });
 
 export const insert = internalMutation(
@@ -34,6 +37,7 @@ export const create = mutation({
         latitude: v.number(),
         longitude: v.number(),
       }),
+      images: v.optional(v.array(v.id("_storage"))),
     }),
   },
   handler: async (ctx, { event }) => {

@@ -36,7 +36,9 @@ import {
 import { useSearchParams } from "react-router";
 import { latitude } from "../store/signal";
 import { longitude } from "../store/signal";
-import { MyDropzone } from "~/shared/ui/dropzone";
+import { FileUploader } from "~/shared/ui/file-uploader";
+import { useMutation as useCustomMutation } from "convex/react";
+import type { Id } from "convex/_generated/dataModel";
 
 const formSchema = z.object({
   title: z.string().min(1).min(4).max(25),
@@ -54,9 +56,9 @@ export const NewEvent = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const generateUploadUrl = useMutation({
-    mutationFn: useConvexMutation(api.events.generateUploadUrl),
-  });
+  const generateUploadUrl = useCustomMutation(api.events.generateUploadUrl);
+  const [storageIds, setStorageIds] = useState<Id<"_storage">[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<Set<string>>(new Set());
 
   const { mutate, isPending } = useMutation({
     mutationFn: useConvexMutation(api.events.create),
@@ -71,7 +73,11 @@ export const NewEvent = () => {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     mutate({
-      event: { ...values, date: values.date?.toISOString() },
+      event: {
+        ...values,
+        date: values.date?.toISOString(),
+        images: storageIds,
+      },
     });
   }
 
@@ -134,6 +140,24 @@ export const NewEvent = () => {
       unsubscribeLng();
     };
   }, [form.setValue]);
+
+  async function handleSendImage(files: File[]) {
+    // Filter out already uploaded files
+    const newFiles = files.filter((file) => !uploadedFiles.has(file.name));
+
+    for (const file of newFiles) {
+      const postUrl = await generateUploadUrl();
+
+      const result = await fetch(postUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      const { storageId } = await result.json();
+      setStorageIds((prev) => [...prev, storageId]);
+      setUploadedFiles((prev) => new Set([...prev, file.name]));
+    }
+  }
 
   return (
     <Sheet
@@ -248,7 +272,12 @@ export const NewEvent = () => {
                 </FormItem>
               )}
             />
-            <MyDropzone />
+
+            <FileUploader
+              multiple={true}
+              maxFileCount={10}
+              onUpload={handleSendImage}
+            />
 
             <LoadingButton type="submit" loading={isPending}>
               create event
