@@ -1,11 +1,13 @@
-import { api } from "convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
-import { useQuery } from "convex/react";
+
 import { useSearchParams } from "react-router";
-import { Event } from "~/modules/event";
+
 import { Map as MyMap } from "~/modules/Map";
 import type { Route } from "./+types/_index";
 import { markerStylesheet } from "~/modules/Map";
+import { useEffect } from "react";
+import { getPublicEnv } from "env.common";
+import { Header } from "~/modules/header";
 
 export const links: Route.LinksFunction = () => [
   { rel: "stylesheet", href: markerStylesheet },
@@ -21,10 +23,33 @@ export function meta() {
 export default function Home() {
   const [searchParams] = useSearchParams();
   const eventId = searchParams.get("eventId") as Id<"events">;
+
+  useEffect(() => {
+    getEvent(eventId);
+  }, [eventId]);
+
   return (
-    <div className="relative flex flex-1 w-full">
-      <MyMap />
-      {eventId && <Event eventId={eventId} />}
-    </div>
+    <>
+      <Header />
+      <div className="relative flex flex-1 w-full">
+        <MyMap />
+      </div>
+    </>
   );
 }
+
+const getEvent = async (eventId: Id<"events">) => {
+  const url = `${getPublicEnv().convexUrl}/api/run/events/get/${eventId}`;
+  const request = { args: { id: eventId }, format: "json" };
+
+  const data = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+  const result = await data.json();
+
+  return result;
+};

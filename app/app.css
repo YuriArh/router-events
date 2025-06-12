@@ -73,6 +73,14 @@ body {
     --chart-4: oklch(85% 0.2 241);
     --chart-5: oklch(95% 0.2 241);
   }
+  .maplibregl-popup-tip {
+    display: none;
+  }
+
+  .maplibregl-popup-content {
+    padding: 0 !important;
+    background: var(--background) !important;
+  }
 }
 
 @theme inline {

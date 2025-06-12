@@ -39,6 +39,7 @@ import { longitude } from "../store/signal";
 import { FileUploader } from "~/shared/ui/file-uploader";
 import { useMutation as useCustomMutation } from "convex/react";
 import type { Id } from "convex/_generated/dataModel";
+import { useAuth } from "@clerk/react-router";
 
 const formSchema = z.object({
   title: z.string().min(1).min(4).max(25),
@@ -54,11 +55,14 @@ const formSchema = z.object({
 
 export const NewEvent = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [storageIds, setStorageIds] = useState<Id<"_storage">[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<Set<string>>(new Set());
+
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const generateUploadUrl = useCustomMutation(api.events.generateUploadUrl);
-  const [storageIds, setStorageIds] = useState<Id<"_storage">[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<Set<string>>(new Set());
+
+  const { isSignedIn } = useAuth();
 
   const { mutate, isPending } = useMutation({
     mutationFn: useConvexMutation(api.events.create),
@@ -82,6 +86,11 @@ export const NewEvent = () => {
   }
 
   const handleOpenChange = (open: boolean) => {
+    if (!isSignedIn) {
+      toast.error("You must be signed in to create an event");
+      return;
+    }
+
     if (!open) {
       setSearchParams((prev) => {
         prev.delete("newEvent");

@@ -9,12 +9,20 @@ export const current = query({
   },
 });
 
+export const getUserById = query({
+  args: { id: v.id("users") },
+  handler: async (ctx, { id }) => {
+    return await ctx.db.get(id);
+  },
+});
+
 export const upsertFromClerk = internalMutation({
   args: { data: v.any() as Validator<UserJSON> }, // no runtime validation, trust Clerk
   async handler(ctx, { data }) {
     const userAttributes = {
       name: `${data.first_name} ${data.last_name}`,
       externalId: data.id,
+      imageUrl: data.image_url,
     };
 
     const user = await userByExternalId(ctx, data.id);

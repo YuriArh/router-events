@@ -7,9 +7,6 @@ import { useEffect } from "react";
 export function Welcome() {
   const [theme, setTheme, { definedBy }] = useTheme();
 
-  useEffect(() => {
-    console.log({ theme, definedBy });
-  }, [definedBy, theme]);
   return (
     <main className="flex items-center justify-center pt-16 pb-4">
       <div className="flex-1 flex flex-col items-center gap-16 min-h-0">

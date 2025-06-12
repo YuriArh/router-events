@@ -8,17 +8,11 @@ import {
   useLoaderData,
 } from "react-router";
 import { rootAuthLoader } from "@clerk/react-router/ssr.server";
-import {
-  ClerkProvider,
-  SignedIn,
-  SignedOut,
-  UserButton,
-  SignInButton,
-  useAuth,
-} from "@clerk/react-router";
+import { ClerkProvider, useAuth } from "@clerk/react-router";
 import type { Route } from "./+types/root";
 import {
   PreventFlashOnWrongTheme,
+  Theme,
   ThemeProvider,
   useTheme,
 } from "remix-themes";
@@ -30,7 +24,6 @@ import maplibre from "maplibre-gl/dist/maplibre-gl.css?url";
 import i18next from "./i18next.server";
 import { useTranslation } from "react-i18next";
 import { useChangeLanguage } from "remix-i18next/react";
-import { Header } from "./modules/header";
 import stylesheet from "./app.css?url";
 import { ruRU, enUS } from "@clerk/localizations";
 import { dark } from "@clerk/themes";
@@ -82,7 +75,7 @@ export default function AppWithProviders({ loaderData }: Route.ComponentProps) {
 
   return (
     <ThemeProvider
-      specifiedTheme={theme}
+      specifiedTheme={Theme.DARK}
       themeAction="/action/set-theme"
       disableTransitionOnThemeChange={true}
     >
@@ -146,7 +139,6 @@ function App() {
             </head>
             <body className="flex flex-1 flex-col h-full">
               <PublicEnv {...publicEnv} />
-              <Header />
               <Outlet />
               <Toaster />
               <ScrollRestoration />

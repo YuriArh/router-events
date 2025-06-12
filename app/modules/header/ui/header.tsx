@@ -2,25 +2,28 @@ import { UserButton } from "@clerk/react-router";
 import { SignedIn } from "@clerk/react-router";
 import { SignedOut, SignInButton } from "@clerk/react-router";
 import { useTranslation } from "react-i18next";
-import { Theme, useTheme } from "remix-themes";
+import { useNavigate } from "react-router";
 import { NewEvent } from "~/modules/new-event";
 import { Button } from "~/shared/ui/button";
 
 export const Header = () => {
   const { t, i18n } = useTranslation();
-  const [_, setTheme] = useTheme();
+  const navigate = useNavigate();
 
   return (
     <div className="w-full h-14 items-center p-2 px-4 flex justify-between">
-      {t("Header")}
+      <div
+        className="text-2xl font-bold cursor-pointer"
+        onClick={() => navigate("/")}
+        onKeyUp={() => navigate("/")}
+      >
+        {t("Eventapp")}
+      </div>
       <div>
         <Button onClick={() => i18n.changeLanguage("en")}>en</Button>
         <Button onClick={() => i18n.changeLanguage("ru")}>ru</Button>
       </div>
-      <div>
-        <Button onClick={() => setTheme(Theme.LIGHT)}>Light</Button>
-        <Button onClick={() => setTheme(Theme.DARK)}>Dark</Button>
-      </div>
+
       <NewEvent />
       <SignedOut>
         <SignInButton mode="modal" />
@@ -68,6 +71,7 @@ const DotIcon = () => {
       viewBox="0 0 512 512"
       fill="currentColor"
     >
+      <title>Dot icon</title>
       <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
     </svg>
   );

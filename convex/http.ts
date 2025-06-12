@@ -1,8 +1,9 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { WebhookEvent } from "@clerk/backend";
 import { Webhook } from "svix";
+import type { Id } from "./_generated/dataModel";
 
 const http = httpRouter();
 
@@ -55,5 +56,27 @@ async function validateRequest(req: Request): Promise<WebhookEvent | null> {
     return null;
   }
 }
+
+http.route({
+  pathPrefix: "/api/events/",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+    const path = url.pathname;
+    const eventId = path.replace("/api/events/", "") as Id<"events">;
+    const event = await ctx.runQuery(api.events.get, { eventId });
+
+    if (!event) {
+      return new Response("Event not found", { status: 404 });
+    }
+
+    return new Response(JSON.stringify(event), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  }),
+});
 
 export default http;

@@ -9,16 +9,35 @@ export const get = query({
     eventId: v.id("events"),
   },
   handler: async (ctx, { eventId }) => {
-    return await ctx.db.get(eventId);
+    const event = await ctx.db.get(eventId);
+
+    if (event?.images) {
+      const images = await Promise.all(
+        event?.images?.map(async (id) => await ctx.storage.getUrl(id))
+      );
+      return { ...event, images };
+    }
+
+    return event;
   },
 });
 
-export const list = query(async (ctx) => {
-  const events = await ctx.db.query("events").collect();
-  return events.map((event) => ({
-    ...event,
-    images: event.images?.map((image) => ctx.storage.getUrl(image)),
-  }));
+export const list = query({
+  args: {},
+  handler: async (ctx) => {
+    const events = await ctx.db.query("events").collect();
+
+    // Get image URLs for each event
+    const eventsWithImage = await Promise.all(
+      events.map(async (event) => {
+        if (!event.images) return event;
+        const titleImage = await ctx.storage.getUrl(event.images[0]);
+        return { ...event, titleImage };
+      })
+    );
+
+    return eventsWithImage;
+  },
 });
 
 export const insert = internalMutation(
