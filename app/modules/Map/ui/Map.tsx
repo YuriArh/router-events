@@ -1,48 +1,69 @@
-import { latitude, longitude } from "~/modules/new-event";
-import { useMapController } from "../hooks/useMapController";
-import { useQuery } from "@tanstack/react-query";
-import { api } from "convex/_generated/api";
-import { convexQuery } from "@convex-dev/react-query";
-import { MapMarker } from "../components/MapMarker";
 import { Theme, useTheme } from "remix-themes";
-import { useNavigate, useSearchParams } from "react-router";
-import Map, {
+import MapGL, {
   GeolocateControl,
+  ScaleControl,
+  type MapRef,
   Marker,
   Popup,
-  ScaleControl,
+  type ViewStateChangeEvent,
 } from "react-map-gl/maplibre";
 import { useLocalStorage } from "~/shared/hooks/use-local-storage";
 import { getPublicEnv } from "env.common";
-import maplibregl from "maplibre-gl";
-import { useCallback, useMemo, useState } from "react";
-import { MarkerPopup } from "../components/MarkerPopup";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { memo, useRef, useState } from "react";
 import type { Doc } from "convex/_generated/dataModel";
+import { MarkerPopup } from "../components/MarkerPopup";
+import { useNavigate } from "react-router";
+import isEqual from "react-fast-compare";
 
 const API_KEY = getPublicEnv().maptilerKey;
 
-export function CustomMap() {
-  const [searchParams] = useSearchParams();
-  const isNewEventModalOpen = searchParams.get("newEvent") === "true";
-  const { data: events } = useQuery(convexQuery(api.events.list, {}));
-  const [theme] = useTheme();
-  const navigate = useNavigate();
-  const [selectedEvent, setSelectedEvent] = useState<Doc<"events"> | null>(
-    null
-  );
+type CustomMapProps = {
+  events: Doc<"events">[] | undefined;
+  setBounds: (bounds: {
+    _sw: { lat: number; lng: number };
+    _ne: { lat: number; lng: number };
+  }) => void;
+};
 
+function CustomMap({ events, setBounds }: CustomMapProps) {
+  const [theme] = useTheme();
+  const mapRef = useRef<MapRef>(null);
   const [lngLat, setLngLat] = useLocalStorage("lngLat", {
     longitude: 0,
     latitude: 0,
   });
+  const [selectedEvent, setSelectedEvent] = useState<Doc<"events"> | null>(
+    null
+  );
+  const navigate = useNavigate();
 
-  const handleMarkerClick = useCallback((event: Doc<"events">) => {
-    setSelectedEvent(event);
-  }, []);
+  const handleMove = (e?: ViewStateChangeEvent) => {
+    if (e) {
+      setLngLat(e.viewState);
+      const bounds = e.target.getBounds();
+      if (bounds) {
+        setBounds({
+          _sw: { lat: bounds.getSouth(), lng: bounds.getWest() },
+          _ne: { lat: bounds.getNorth(), lng: bounds.getEast() },
+        });
+      }
+      return;
+    }
+    const bounds = mapRef.current?.getBounds();
+    if (bounds) {
+      setBounds({
+        _sw: { lat: bounds.getSouth(), lng: bounds.getWest() },
+        _ne: { lat: bounds.getNorth(), lng: bounds.getEast() },
+      });
+    }
+  };
 
   return (
-    <Map
-      onMove={(e) => setLngLat(e.viewState)}
+    <MapGL
+      ref={mapRef}
+      onMove={handleMove}
+      onLoad={() => handleMove()}
       style={{ width: "100%", height: "100%" }}
       initialViewState={{
         longitude: lngLat.longitude,
@@ -62,10 +83,9 @@ export function CustomMap() {
             latitude={event.location.latitude}
             onClick={(e) => {
               e.originalEvent.stopPropagation();
-              handleMarkerClick(event);
+              setSelectedEvent(event);
             }}
-          ></Marker>
-
+          />
           {selectedEvent?._id === event._id && (
             <Popup
               longitude={event.location.longitude}
@@ -87,6 +107,10 @@ export function CustomMap() {
           )}
         </div>
       ))}
-    </Map>
+    </MapGL>
   );
 }
+
+export const MyMap = memo<CustomMapProps>(CustomMap, (prev, next) =>
+  isEqual(prev.events, next.events)
+);

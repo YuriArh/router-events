@@ -1,35 +1,30 @@
 import type { Route } from "./+types/event.$eventId";
 import { api } from "convex/_generated/api";
 import { useQuery } from "@tanstack/react-query";
-import type { Doc, Id } from "convex/_generated/dataModel";
+import type { Id } from "convex/_generated/dataModel";
 import { convexQuery } from "@convex-dev/react-query";
 import { useParams } from "react-router";
 import { format } from "date-fns";
-import MapView from "~/shared/ui/map-view";
+
 import markerStylesheet from "~/modules/Map/styles/icon.css?url";
 import { Header } from "~/modules/header";
 import { ProfilePicture } from "~/modules/user";
-import Map, { Marker } from "react-map-gl/maplibre";
+import ReactMap, { Marker } from "react-map-gl/maplibre";
 import { getPublicEnv } from "env.common";
+import { ConvexHttpClient } from "convex/browser";
 
 export const links: Route.LinksFunction = () => [
   { rel: "stylesheet", href: markerStylesheet },
 ];
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const { eventId } = params;
-
-  const convexDeploymentUrl = import.meta.env.VITE_CONVEX_URL;
-  const convexSiteUrl = convexDeploymentUrl.endsWith(".cloud")
-    ? `${convexDeploymentUrl.substring(
-        0,
-        convexDeploymentUrl.length - ".cloud".length
-      )}.site`
-    : convexDeploymentUrl;
-
-  const event = (await fetch(`${convexSiteUrl}/api/events/${eventId}`).then(
-    (res) => res.json()
-  )) as Doc<"events">;
+  const { eventId } = params as { eventId: Id<"events"> };
+  const convexUrl = import.meta.env.VITE_CONVEX_URL;
+  if (!convexUrl) {
+    throw new Error("VITE_CONVEX_URL is not defined");
+  }
+  const convex = new ConvexHttpClient(convexUrl);
+  const event = await convex.query(api.events.get, { eventId });
 
   return {
     event,
@@ -37,6 +32,13 @@ export async function loader({ params }: Route.LoaderArgs) {
 }
 
 export function meta({ data }: Route.MetaArgs) {
+  if (!data?.event) {
+    return [
+      { title: "Event not found" },
+      { name: "description", content: "Event not found" },
+    ];
+  }
+
   return [
     { title: data.event.title },
     { name: "description", content: data.event.description },
@@ -111,7 +113,7 @@ export default function EventRoute({ loaderData }: Route.ComponentProps) {
         <div className="mb-6 flex-1 flex flex-col max-h-1/3">
           <h2 className="text-xl font-semibold mb-2">Location</h2>
 
-          <Map
+          <ReactMap
             style={{ width: "100%", height: "100%" }}
             initialViewState={{
               longitude: data.location.longitude,
@@ -129,7 +131,7 @@ export default function EventRoute({ loaderData }: Route.ComponentProps) {
                 latitude={marker.location.lat}
               />
             ))}
-          </Map>
+          </ReactMap>
         </div>
       </div>
     </div>

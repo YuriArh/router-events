@@ -40,6 +40,36 @@ export const list = query({
   },
 });
 
+export const getInBounds = query({
+  args: {
+    minLat: v.number(),
+    minLng: v.number(),
+    maxLat: v.number(),
+    maxLng: v.number(),
+  },
+  handler: async (ctx, { minLat, minLng, maxLat, maxLng }) => {
+    const events = await ctx.db.query("events").collect();
+
+    const boundedEvents = events.filter(
+      (event) =>
+        event.location.latitude >= minLat &&
+        event.location.latitude <= maxLat &&
+        event.location.longitude >= minLng &&
+        event.location.longitude <= maxLng
+    );
+
+    // Get image URLs for each event
+    const eventsWithImage = await Promise.all(
+      boundedEvents.map(async (event) => {
+        if (!event.images) return { ...event, titleImage: null };
+        const titleImage = await ctx.storage.getUrl(event.images[0]);
+        return { ...event, titleImage };
+      })
+    );
+    return eventsWithImage;
+  },
+});
+
 export const insert = internalMutation(
   (ctx, { event }: { event: WithoutSystemFields<Doc<"events">> }) =>
     ctx.db.insert("events", event)
