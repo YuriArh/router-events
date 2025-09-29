@@ -2,7 +2,8 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { WithoutSystemFields } from "convex/server";
 import type { Doc } from "./_generated/dataModel";
-import { getCurrentUserOrThrow } from "./users";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { categories } from "./schema";
 
 export const get = query({
   args: {
@@ -23,20 +24,43 @@ export const get = query({
 });
 
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    const events = await ctx.db.query("events").collect();
+  args: {
+    category: v.optional(categories),
+    date: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const events = args.category
+      ? await ctx.db
+          .query("events")
+          .withIndex("byCategory", (q) => q.eq("category", args.category!))
+          .order("desc")
+          .collect()
+      : await ctx.db.query("events").order("desc").collect();
 
     // Get image URLs for each event
-    const eventsWithImage = await Promise.all(
+    const enrichedEvents = await Promise.all(
       events.map(async (event) => {
-        if (!event.images) return event;
+        const organizer = await ctx.db.get(event.organizerId);
+        const organaizerOrNull = organizer
+          ? { name: organizer.name, email: organizer.image }
+          : null;
+
+        if (!event.images)
+          return {
+            ...event,
+            organizer: organaizerOrNull,
+          };
         const titleImage = await ctx.storage.getUrl(event.images[0]);
-        return { ...event, titleImage };
+
+        return {
+          ...event,
+          titleImage,
+          organizer: organaizerOrNull,
+        };
       })
     );
 
-    return eventsWithImage;
+    return enrichedEvents;
   },
 });
 
@@ -52,21 +76,28 @@ export const getInBounds = query({
 
     const boundedEvents = events.filter(
       (event) =>
-        event.location.latitude >= minLat &&
-        event.location.latitude <= maxLat &&
-        event.location.longitude >= minLng &&
-        event.location.longitude <= maxLng
+        event.address?.lat >= minLat &&
+        event.address?.lat <= maxLat &&
+        event.address?.lon >= minLng &&
+        event.address?.lon <= maxLng
     );
 
     // Get image URLs for each event
-    const eventsWithImage = await Promise.all(
+    const extendedEvents = await Promise.all(
       boundedEvents.map(async (event) => {
         if (!event.images) return { ...event, titleImage: null };
         const titleImage = await ctx.storage.getUrl(event.images[0]);
-        return { ...event, titleImage };
+        const organizer = await ctx.db.get(event.organizerId);
+        return {
+          ...event,
+          titleImage,
+          organizer: organizer
+            ? { name: organizer.name, email: organizer.image }
+            : null,
+        };
       })
     );
-    return eventsWithImage;
+    return extendedEvents;
   },
 });
 
@@ -81,21 +112,86 @@ export const create = mutation({
       title: v.string(),
       description: v.optional(v.string()),
       date: v.optional(v.string()),
-      location: v.object({
-        title: v.string(),
-        latitude: v.number(),
-        longitude: v.number(),
+      address: v.object({
+        formatted: v.string(),
+        lat: v.number(),
+        lon: v.number(),
+        city: v.optional(v.string()),
+        country: v.optional(v.string()),
+        state: v.optional(v.string()),
       }),
       images: v.optional(v.array(v.id("_storage"))),
+      category: v.optional(categories),
     }),
   },
   handler: async (ctx, { event }) => {
-    const user = await getCurrentUserOrThrow(ctx);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Must be logged in to create events");
+    }
 
     return await ctx.db.insert("events", {
       ...event,
-      user: user._id,
+      organizerId: userId,
+      attendeeCount: 0,
+      category: event.category || "other",
     });
+  },
+});
+
+export const toggleAttendance = mutation({
+  args: { eventId: v.id("events") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Must be logged in to attend events");
+    }
+
+    const existingAttendance = await ctx.db
+      .query("attendees")
+      .withIndex("byEventAndUser", (q) =>
+        q.eq("eventId", args.eventId).eq("userId", userId)
+      )
+      .unique();
+
+    const event = await ctx.db.get(args.eventId);
+    if (!event) {
+      throw new Error("Event not found");
+    }
+
+    if (existingAttendance) {
+      await ctx.db.delete(existingAttendance._id);
+      await ctx.db.patch(args.eventId, {
+        attendeeCount: Math.max(0, event.attendeeCount - 1),
+      });
+      return false;
+    }
+
+    await ctx.db.insert("attendees", {
+      eventId: args.eventId,
+      userId,
+    });
+    await ctx.db.patch(args.eventId, {
+      attendeeCount: event.attendeeCount + 1,
+    });
+    return true;
+  },
+});
+
+export const isAttending = query({
+  args: { eventId: v.id("events") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return false;
+
+    const attendance = await ctx.db
+      .query("attendees")
+      .withIndex("byEventAndUser", (q) =>
+        q.eq("eventId", args.eventId).eq("userId", userId)
+      )
+      .unique();
+
+    return !!attendance;
   },
 });
 

@@ -6,8 +6,9 @@ import { useQuery } from "@tanstack/react-query";
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "convex/_generated/api";
 import type { Doc } from "convex/_generated/dataModel";
-import { Link } from "react-router";
 import { useState } from "react";
+import { EventCard } from "~/modules/event";
+import type { IEvent } from "~/modules/event/model";
 
 export const links: Route.LinksFunction = () => [
   { rel: "stylesheet", href: markerStylesheet },
@@ -40,6 +41,7 @@ export default function Home() {
     ),
     placeholderData: (prev) => prev,
   });
+
   return (
     <>
       <Header />
@@ -50,18 +52,14 @@ export default function Home() {
           <EventList events={events} />
         </div>
         <div className="w-3/4">
-          <MyMap events={events} setBounds={setBounds} />
+          <MyMap setBounds={setBounds} />
         </div>
       </div>
     </>
   );
 }
 
-function EventList({
-  events,
-}: {
-  events: (Doc<"events"> & { titleImage: string | null })[] | undefined;
-}) {
+function EventList({ events }: { events: IEvent[] | undefined }) {
   // events теперь можно фильтровать по bounds, если нужно, либо просто использовать events
   return (
     <div className="space-y-4">
@@ -69,30 +67,5 @@ function EventList({
         <EventCard key={event._id} event={event} />
       ))}
     </div>
-  );
-}
-
-function EventCard({
-  event,
-}: {
-  event: Doc<"events"> & { titleImage: string | null };
-}) {
-  return (
-    <Link to={`/event/${event._id}`}>
-      <div className="border-2 border-gray-200 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200">
-        {event.titleImage && (
-          <img
-            src={event.titleImage}
-            alt={event.title}
-            className="w-full h-32 object-cover"
-          />
-        )}
-        <div className="p-4">
-          <h3 className="font-bold text-lg">{event.title}</h3>
-          <p className="text-sm text-gray-600">{event.date}</p>
-          <p className="text-sm text-gray-800 mt-2">{event.description}</p>
-        </div>
-      </div>
-    </Link>
   );
 }

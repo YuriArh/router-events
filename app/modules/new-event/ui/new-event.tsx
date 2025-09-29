@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "~/shared/ui/button";
 import { z } from "zod";
@@ -17,7 +17,7 @@ import {
 import { Input } from "~/shared/ui/input";
 import { Textarea } from "~/shared/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "~/shared/ui/popover";
-import { CalendarIcon, Loader, LoaderCircle } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { Calendar } from "~/shared/ui/calendar";
 import { cn } from "~/lib/utils";
 import { format } from "date-fns";
@@ -25,36 +25,38 @@ import { useMutation } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import { useConvexMutation } from "@convex-dev/react-query";
 import { LoadingButton } from "~/shared/ui/loading-button";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "~/shared/ui/sheet";
 import { useSearchParams } from "react-router";
-import { latitude } from "../store/signal";
-import { longitude } from "../store/signal";
 import { FileUploader } from "~/shared/ui/file-uploader";
+import { AddressAutocomplete } from "~/shared/ui/address-autocomplete";
 import { useMutation as useCustomMutation } from "convex/react";
 import type { Id } from "convex/_generated/dataModel";
-import { useAuth } from "@clerk/react-router";
+import { useConvexAuth } from "convex/react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "~/shared/ui/dialog";
 
 const formSchema = z.object({
   title: z.string().min(1).min(4).max(25),
   description: z.string().optional(),
 
   date: z.coerce.date().optional(),
-  location: z.object({
-    title: z.string(),
-    latitude: z.number(),
-    longitude: z.number(),
+
+  address: z.object({
+    formatted: z.string(),
+    lat: z.number(),
+    lon: z.number(),
+    city: z.string().optional(),
+    country: z.string().optional(),
+    state: z.string().optional(),
   }),
 });
 
 export const NewEvent = () => {
-  const [isLoading, setIsLoading] = useState(false);
   const [storageIds, setStorageIds] = useState<Id<"_storage">[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<Set<string>>(new Set());
 
@@ -62,7 +64,7 @@ export const NewEvent = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const generateUploadUrl = useCustomMutation(api.events.generateUploadUrl);
 
-  const { isSignedIn } = useAuth();
+  const { isAuthenticated } = useConvexAuth();
 
   const { mutate, isPending } = useMutation({
     mutationFn: useConvexMutation(api.events.create),
@@ -78,15 +80,17 @@ export const NewEvent = () => {
   function onSubmit(values: z.infer<typeof formSchema>) {
     mutate({
       event: {
-        ...values,
+        title: values.title,
+        description: values.description,
         date: values.date?.toISOString(),
+        address: values.address,
         images: storageIds,
       },
     });
   }
 
   const handleOpenChange = (open: boolean) => {
-    if (!isSignedIn) {
+    if (!isAuthenticated) {
       toast.error("You must be signed in to create an event");
       return;
     }
@@ -103,52 +107,6 @@ export const NewEvent = () => {
       });
     }
   };
-
-  useEffect(() => {
-    const updateFormValues = () => {
-      form.setValue("location.latitude", latitude.value);
-      form.setValue("location.longitude", longitude.value);
-    };
-
-    // Create subscription to signals
-    const unsubscribeLat = latitude.subscribe(updateFormValues);
-    const unsubscribeLng = longitude.subscribe(updateFormValues);
-
-    return () => {
-      unsubscribeLat();
-      unsubscribeLng();
-    };
-  }, [form.setValue]);
-
-  useEffect(() => {
-    const doRequest = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude.value}&lon=${longitude.value}&zoom=18&addressdetails=1`,
-          {
-            headers: {
-              "Accept-Language": "ru",
-            },
-          }
-        );
-        const data = await response.json();
-        setIsLoading(false);
-        form.setValue("location.title", data.display_name);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    // Create subscription to signals
-    const unsubscribeLat = latitude.subscribe(doRequest);
-    const unsubscribeLng = longitude.subscribe(doRequest);
-
-    return () => {
-      unsubscribeLat();
-      unsubscribeLng();
-    };
-  }, [form.setValue]);
 
   async function handleSendImage(files: File[]) {
     // Filter out already uploaded files
@@ -169,29 +127,22 @@ export const NewEvent = () => {
   }
 
   return (
-    <Sheet
+    <Dialog
       open={searchParams.get("newEvent") === "true"}
       onOpenChange={handleOpenChange}
-      key="right"
-      modal={false}
     >
-      <SheetTrigger asChild>
+      <DialogTrigger asChild>
         <Button>{t("NewEvent.create")}</Button>
-      </SheetTrigger>
-      <SheetContent
-        onInteractOutside={(e) => {
-          e.preventDefault();
-        }}
-        className="min-w-xl"
-      >
-        <SheetHeader>
-          <SheetTitle>{t("NewEvent.title")}</SheetTitle>
-          <SheetDescription>{t("NewEvent.description")}</SheetDescription>
-        </SheetHeader>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("NewEvent.title")}</DialogTitle>
+          <DialogDescription>{t("NewEvent.description")}</DialogDescription>
+        </DialogHeader>
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-8 w-full mx-auto py-10 px-10"
+            className="w-full space-y-4"
           >
             <FormField
               control={form.control}
@@ -266,18 +217,26 @@ export const NewEvent = () => {
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
-              name="location.title"
+              name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Location</FormLabel>
-                  {isLoading ? (
-                    <LoaderCircle className=" animate-spin" />
-                  ) : (
-                    <p>{field.value}</p>
-                  )}
-                  <FormDescription>Выберите локацию ивента</FormDescription>
+                  <FormLabel>Адрес</FormLabel>
+                  <FormControl>
+                    <AddressAutocomplete
+                      value={field.value?.formatted || ""}
+                      onChange={(address) => {
+                        field.onChange(address);
+                      }}
+                      placeholder="Введите адрес события..."
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Выберите адрес из предложенных вариантов
+                  </FormDescription>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -293,7 +252,7 @@ export const NewEvent = () => {
             </LoadingButton>
           </form>
         </Form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 };

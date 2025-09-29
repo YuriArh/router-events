@@ -1,6 +1,6 @@
-import { internalMutation, query, type QueryCtx } from "./_generated/server";
-import type { UserJSON } from "@clerk/backend";
-import { v, type Validator } from "convex/values";
+import { mutation, query, type QueryCtx } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { v } from "convex/values";
 
 export const current = query({
   args: {},
@@ -16,39 +16,6 @@ export const getUserById = query({
   },
 });
 
-export const upsertFromClerk = internalMutation({
-  args: { data: v.any() as Validator<UserJSON> }, // no runtime validation, trust Clerk
-  async handler(ctx, { data }) {
-    const userAttributes = {
-      name: `${data.first_name} ${data.last_name}`,
-      externalId: data.id,
-      imageUrl: data.image_url,
-    };
-
-    const user = await userByExternalId(ctx, data.id);
-    if (user === null) {
-      await ctx.db.insert("users", userAttributes);
-    } else {
-      await ctx.db.patch(user._id, userAttributes);
-    }
-  },
-});
-
-export const deleteFromClerk = internalMutation({
-  args: { clerkUserId: v.string() },
-  async handler(ctx, { clerkUserId }) {
-    const user = await userByExternalId(ctx, clerkUserId);
-
-    if (user !== null) {
-      await ctx.db.delete(user._id);
-    } else {
-      console.warn(
-        `Can't delete user, there is none for Clerk user ID: ${clerkUserId}`
-      );
-    }
-  },
-});
-
 export async function getCurrentUserOrThrow(ctx: QueryCtx) {
   const userRecord = await getCurrentUser(ctx);
   if (!userRecord) throw new Error("Can't get current user");
@@ -56,16 +23,51 @@ export async function getCurrentUserOrThrow(ctx: QueryCtx) {
 }
 
 export async function getCurrentUser(ctx: QueryCtx) {
-  const identity = await ctx.auth.getUserIdentity();
-  if (identity === null) {
-    return null;
-  }
-  return await userByExternalId(ctx, identity.subject);
+  const userId = await getAuthUserId(ctx);
+  if (!userId) return null;
+  return await ctx.db.get(userId);
 }
 
-async function userByExternalId(ctx: QueryCtx, externalId: string) {
-  return await ctx.db
-    .query("users")
-    .withIndex("byExternalId", (q) => q.eq("externalId", externalId))
-    .unique();
-}
+export const updateProfile = mutation({
+  args: {
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Must be logged in to update profile");
+    }
+
+    await ctx.db.patch(userId, {
+      name: args.name,
+    });
+
+    return { success: true };
+  },
+});
+
+export const getUserEvents = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const events = await ctx.db
+      .query("events")
+      .withIndex("byOrganizerId", (q) => q.eq("organizerId", userId))
+      .order("desc")
+      .collect();
+
+    return Promise.all(
+      events.map(async (event) => {
+        const imageUrl = event.images
+          ? await ctx.storage.getUrl(event.images[0])
+          : null;
+        return {
+          ...event,
+          imageUrl,
+        };
+      })
+    );
+  },
+});

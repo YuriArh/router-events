@@ -8,7 +8,6 @@ import {
   useLoaderData,
 } from "react-router";
 import { rootAuthLoader } from "@clerk/react-router/ssr.server";
-import { ClerkProvider, useAuth } from "@clerk/react-router";
 import type { Route } from "./+types/root";
 import {
   PreventFlashOnWrongTheme,
@@ -25,14 +24,12 @@ import i18next from "./i18next.server";
 import { useTranslation } from "react-i18next";
 import { useChangeLanguage } from "remix-i18next/react";
 import stylesheet from "./app.css?url";
-import { ruRU, enUS } from "@clerk/localizations";
-import { dark } from "@clerk/themes";
-import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 import { useState } from "react";
 import { Toaster } from "./shared/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConvexQueryClient } from "@convex-dev/react-query";
+import { ConvexAuthProvider } from "@convex-dev/auth/react";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -70,12 +67,10 @@ export const handle = {
   i18n: "common",
 };
 
-export default function AppWithProviders({ loaderData }: Route.ComponentProps) {
-  const { theme } = loaderData;
-
+export default function AppWithProviders() {
   return (
     <ThemeProvider
-      specifiedTheme={Theme.DARK}
+      specifiedTheme={Theme.LIGHT}
       themeAction="/action/set-theme"
       disableTransitionOnThemeChange={true}
     >
@@ -116,37 +111,27 @@ function App() {
       className={clsx(theme)}
       suppressHydrationWarning
     >
-      <ClerkProvider
-        loaderData={loaderData}
-        signUpFallbackRedirectUrl="/"
-        signInFallbackRedirectUrl="/"
-        localization={i18n.language === "en" ? enUS : ruRU}
-        appearance={{
-          baseTheme: theme === "dark" ? dark : undefined,
-        }}
-      >
-        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-          <QueryClientProvider client={queryClient}>
-            <head>
-              <meta charSet="utf-8" />
-              <meta
-                name="viewport"
-                content="width=device-width, initial-scale=1"
-              />
-              <Meta />
-              <PreventFlashOnWrongTheme ssrTheme={Boolean(dataTheme)} />
-              <Links />
-            </head>
-            <body className="flex flex-1 flex-col h-full">
-              <PublicEnv {...publicEnv} />
-              <Outlet />
-              <Toaster />
-              <ScrollRestoration />
-              <Scripts />
-            </body>
-          </QueryClientProvider>
-        </ConvexProviderWithClerk>
-      </ClerkProvider>
+      <ConvexAuthProvider client={convex}>
+        <QueryClientProvider client={queryClient}>
+          <head>
+            <meta charSet="utf-8" />
+            <meta
+              name="viewport"
+              content="width=device-width, initial-scale=1"
+            />
+            <Meta />
+            <PreventFlashOnWrongTheme ssrTheme={Boolean(dataTheme)} />
+            <Links />
+          </head>
+          <body className="flex flex-1 flex-col h-full">
+            <PublicEnv {...publicEnv} />
+            <Outlet />
+            <Toaster />
+            <ScrollRestoration />
+            <Scripts />
+          </body>
+        </QueryClientProvider>
+      </ConvexAuthProvider>
     </html>
   );
 }

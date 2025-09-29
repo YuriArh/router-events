@@ -1,87 +1,39 @@
-import { UserButton } from "@clerk/react-router";
-import { SignedIn } from "@clerk/react-router";
-import { SignedOut, SignInButton } from "@clerk/react-router";
-import { useTranslation } from "react-i18next";
+import { Authenticated, Unauthenticated, useConvexAuth } from "convex/react";
 import { useNavigate } from "react-router";
 import { NewEvent } from "~/modules/new-event";
+import { AuthModal, UserButton, UserProfile } from "~/modules/auth";
 import { Button } from "~/shared/ui/button";
+import { useState } from "react";
 
 export const Header = () => {
-  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { isAuthenticated } = useConvexAuth();
 
   return (
-    <div className="w-full h-14 items-center p-2 px-4 flex justify-between">
-      <div
-        className="text-2xl font-bold cursor-pointer"
-        onClick={() => navigate("/")}
-        onKeyUp={() => navigate("/")}
-      >
-        {t("Eventapp")}
-      </div>
-      <div>
-        <Button onClick={() => i18n.changeLanguage("en")}>en</Button>
-        <Button onClick={() => i18n.changeLanguage("ru")}>ru</Button>
-      </div>
-
-      <NewEvent />
-      <SignedOut>
-        <SignInButton mode="modal" />
-      </SignedOut>
-      <SignedIn>
-        <UserButton>
-          {/* You can pass the content as a component */}
-          <UserButton.UserProfilePage
-            label="Custom Page"
-            url="custom"
-            labelIcon={<DotIcon />}
-          >
-            <CustomPage />
-          </UserButton.UserProfilePage>
-
-          {/* You can also pass the content as direct children */}
-          <UserButton.UserProfilePage
-            label="Terms"
-            labelIcon={<DotIcon />}
-            url="terms"
-          >
-            <div>
-              <h1>Custom Terms Page</h1>
-              <p>This is the content of the custom terms page.</p>
+    <>
+      <header className="sticky top-0 z-50 shadow-sm">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div
+              className="flex items-center cursor-pointer"
+              onClick={() => navigate("/")}
+              onKeyUp={() => navigate("/")}
+            >
+              <h1 className="text-2xl font-bold text-rose-500">EventHub</h1>
             </div>
-          </UserButton.UserProfilePage>
 
-          <UserButton.MenuItems>
-            <UserButton.Action
-              label="Open chat"
-              labelIcon={<DotIcon />}
-              onClick={() => alert("init chat")}
-            />
-          </UserButton.MenuItems>
-        </UserButton>
-      </SignedIn>
-    </div>
-  );
-};
-
-const DotIcon = () => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 512 512"
-      fill="currentColor"
-    >
-      <title>Dot icon</title>
-      <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z" />
-    </svg>
-  );
-};
-
-const CustomPage = () => {
-  return (
-    <div>
-      <h1>Custom page</h1>
-      <p>This is the content of the custom page.</p>
-    </div>
+            <div className="flex gap-2">
+              {isAuthenticated && <NewEvent />}
+              <Authenticated>
+                <UserProfile />
+              </Authenticated>
+              <Unauthenticated>
+                <AuthModal />
+              </Unauthenticated>
+            </div>
+          </div>
+        </div>
+      </header>
+    </>
   );
 };

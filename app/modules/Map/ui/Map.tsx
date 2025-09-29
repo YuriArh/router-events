@@ -14,19 +14,20 @@ import { memo, useRef, useState } from "react";
 import type { Doc } from "convex/_generated/dataModel";
 import { MarkerPopup } from "../components/MarkerPopup";
 import { useNavigate } from "react-router";
-import isEqual from "react-fast-compare";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "convex/_generated/api";
+import { convexQuery } from "@convex-dev/react-query";
 
 const API_KEY = getPublicEnv().maptilerKey;
 
 type CustomMapProps = {
-  events: Doc<"events">[] | undefined;
   setBounds: (bounds: {
     _sw: { lat: number; lng: number };
     _ne: { lat: number; lng: number };
   }) => void;
 };
 
-function CustomMap({ events, setBounds }: CustomMapProps) {
+function CustomMap({ setBounds }: CustomMapProps) {
   const [theme] = useTheme();
   const mapRef = useRef<MapRef>(null);
   const [lngLat, setLngLat] = useLocalStorage("lngLat", {
@@ -59,6 +60,8 @@ function CustomMap({ events, setBounds }: CustomMapProps) {
     }
   };
 
+  const { data: events } = useQuery(convexQuery(api.events.list, {}));
+
   return (
     <MapGL
       ref={mapRef}
@@ -70,17 +73,15 @@ function CustomMap({ events, setBounds }: CustomMapProps) {
         latitude: lngLat.latitude,
         zoom: 14,
       }}
-      mapStyle={`https://api.maptiler.com/maps/aquarelle${
-        theme === Theme.DARK ? "-dark" : ""
-      }/style.json?key=${API_KEY}`}
+      mapStyle={`https://api.maptiler.com/maps/basic-v2/style.json?key=${API_KEY}`}
     >
       <GeolocateControl />
       <ScaleControl />
       {events?.map((event) => (
         <div key={event._id}>
           <Marker
-            longitude={event.location.longitude}
-            latitude={event.location.latitude}
+            longitude={event.address.lon}
+            latitude={event.address.lat}
             onClick={(e) => {
               e.originalEvent.stopPropagation();
               setSelectedEvent(event);
@@ -88,8 +89,8 @@ function CustomMap({ events, setBounds }: CustomMapProps) {
           />
           {selectedEvent?._id === event._id && (
             <Popup
-              longitude={event.location.longitude}
-              latitude={event.location.latitude}
+              longitude={event.address.lon}
+              latitude={event.address.lat}
               anchor="bottom"
               offset={40}
               onClose={() => setSelectedEvent(null)}
@@ -111,6 +112,4 @@ function CustomMap({ events, setBounds }: CustomMapProps) {
   );
 }
 
-export const MyMap = memo<CustomMapProps>(CustomMap, (prev, next) =>
-  isEqual(prev.events, next.events)
-);
+export const MyMap = memo<CustomMapProps>(CustomMap);
