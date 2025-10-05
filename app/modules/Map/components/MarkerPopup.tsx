@@ -1,10 +1,9 @@
-import type { Doc } from "convex/_generated/dataModel";
-import { Theme } from "remix-themes";
+import type { IEvent } from "~/modules/event/model";
 import { Button } from "~/shared/ui/button";
 
 interface MarkerPopupProps {
-  marker: Doc<"events">;
-  onEventClick?: (marker: Doc<"events">) => void;
+  marker: IEvent;
+  onEventClick?: (marker: IEvent) => void;
 }
 
 export function MarkerPopup({ marker, onEventClick }: MarkerPopupProps) {
@@ -27,7 +26,7 @@ export function MarkerPopup({ marker, onEventClick }: MarkerPopupProps) {
           <img
             src={marker.titleImage}
             className="w-20 h-20 object-cover rounded"
-            alt={`Event image`}
+            alt={`Event ${marker.title}`}
           />
         </div>
       )}
