@@ -61,21 +61,23 @@ export default function Home() {
   return (
     <>
       <Header />
-      <div className="relative flex flex-1 w-full bg-gray-50">
-        <div className="w-1/2 p-6 overflow-y-auto">
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-              События рядом с вами
-            </h2>
-            <CategorySelector
-              selectedCategory={selectedCategory}
-              onCategoryChange={setSelectedCategory}
-            />
-          </div>
+      <div className="relative flex w-full h-[calc(100vh-4rem)] bg-gray-50">
+        <div className="w-1/2 overflow-y-auto">
+          <div className="p-6">
+            <div className="mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                События рядом с вами
+              </h2>
+              <CategorySelector
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+              />
+            </div>
 
-          <EventList events={filteredEvents} />
+            <EventList events={filteredEvents} />
+          </div>
         </div>
-        <div className="w-1/2 p-6">
+        <div className="w-1/2 pr-6 py-6">
           <div className="h-full rounded-xl overflow-hidden shadow-lg">
             <MyMap setBounds={setBounds} />
           </div>

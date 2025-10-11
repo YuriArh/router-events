@@ -43,8 +43,15 @@
     "notFound": "Event not found",
     "hostedBy": "Hosted by",
     "join": "Join",
+    "leave": "Leave",
     "share": "Share",
-    "address": "Address"
+    "address": "Address",
+    "socialLinks": "Social Media",
+    "linkCopied": "Link copied to clipboard",
+    "errorCopyLink": "Failed to copy link",
+    "joinedSuccessfully": "You've successfully joined the event",
+    "leftSuccessfully": "You've left the event",
+    "errorToggleAttendance": "Failed to change attendance status"
   },
   "Categories": {
     "all": "All",

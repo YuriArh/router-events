@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { useNavigate } from "react-router";
 import { api } from "convex/_generated/api";
 import type { IEvent } from "../model";
+import { Badge } from "~/shared/ui/badge";
 
 interface EventCardProps {
   event: IEvent;
@@ -10,18 +11,9 @@ interface EventCardProps {
 
 export function EventCard({ event }: EventCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
   const navigate = useNavigate();
-  const toggleAttendance = useMutation(api.events.toggleAttendance);
-  const isAttending = useQuery(api.events.isAttending, { eventId: event._id });
 
-  const handleAttendanceToggle = async () => {
-    try {
-      await toggleAttendance({ eventId: event._id });
-    } catch (error) {
-      console.error("Failed to toggle attendance:", error);
-    }
-  };
+  const isAttending = useQuery(api.events.isAttending, { eventId: event._id });
 
   const handlePreviousImage = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -35,11 +27,6 @@ export function EventCard({ event }: EventCardProps) {
     setCurrentImageIndex((prev) =>
       prev === event.images.length - 1 ? 0 : prev + 1
     );
-  };
-
-  const handleFavoriteToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsFavorite(!isFavorite);
   };
 
   const handleCardClick = () => {
@@ -86,30 +73,6 @@ export function EventCard({ event }: EventCardProps) {
               </svg>
             </div>
           )}
-
-          {/* Favorite Button */}
-          <button
-            type="button"
-            onClick={handleFavoriteToggle}
-            className="absolute top-3 right-3 bg-white/80 hover:bg-white rounded-full p-2 transition-colors"
-          >
-            <svg
-              className={`w-5 h-5 ${
-                isFavorite ? "text-red-500 fill-current" : "text-gray-600"
-              }`}
-              fill={isFavorite ? "currentColor" : "none"}
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <title>Favorite</title>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-              />
-            </svg>
-          </button>
 
           {/* Navigation Arrows */}
           {hasMultipleImages && (
@@ -222,20 +185,11 @@ export function EventCard({ event }: EventCardProps) {
             <span className="text-xs text-gray-500">
               {event.attendeeCount} участников
             </span>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleAttendanceToggle();
-              }}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                isAttending
-                  ? "bg-gray-900 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              {isAttending ? "Иду" : "Интересно"}
-            </button>
+            {isAttending && (
+              <Badge className="px-3 py-1 rounded-full text-xs font-medium transition-colors bg-gray-900 text-white hover:bg-gray-900/80">
+                Иду
+              </Badge>
+            )}
           </div>
         </div>
       </button>
