@@ -9,6 +9,72 @@
   "NewEvent": {
     "create": "Создать событие",
     "title": "Новое событие",
-    "description": "Создание нового события"
+    "description": "Создание нового события",
+    "form": {
+      "title": "Название",
+      "titlePlaceholder": "Например: Концерт на крыше",
+      "titleDescription": "Краткое название мероприятия (от 4 до 25 символов)",
+      "description": "Описание",
+      "descriptionPlaceholder": "Расскажите подробнее о мероприятии...",
+      "descriptionDescription": "Подробная информация о событии",
+      "date": "Дата проведения",
+      "datePickPlaceholder": "Выберите дату",
+      "dateDescription": "Когда состоится мероприятие",
+      "address": "Адрес",
+      "addressPlaceholder": "Введите адрес события...",
+      "addressDescription": "Выберите адрес из предложенных вариантов",
+      "category": "Категория",
+      "categoryDescription": "Выберите подходящую категорию для вашего мероприятия",
+      "socialLinks": "Социальные сети",
+      "socialLinksDescription": "Добавьте ссылки для связи с организатором",
+      "images": "Фотографии",
+      "imagesDescription": "Загрузите до 10 фотографий мероприятия",
+      "submit": "Создать событие"
+    }
+  },
+  "Event": {
+    "details": "Детали мероприятия",
+    "date": "Дата",
+    "organizer": "Организатор",
+    "description": "Описание",
+    "location": "Местоположение",
+    "photos": "Фотографии",
+    "loading": "Загрузка...",
+    "notFound": "Мероприятие не найдено",
+    "hostedBy": "Организует",
+    "join": "Присоединиться",
+    "share": "Поделиться",
+    "address": "Адрес"
+  },
+  "Categories": {
+    "all": "Все",
+    "music": "Музыка",
+    "sports": "Спорт",
+    "art": "Искусство",
+    "food": "Еда",
+    "science": "Наука",
+    "technology": "Технологии",
+    "other": "Другое"
+  },
+  "SocialLinks": {
+    "add": "Введите ссылку и нажмите +",
+    "placeholder": "https://...",
+    "whatsapp": "WhatsApp",
+    "telegram": "Telegram",
+    "instagram": "Instagram",
+    "facebook": "Facebook",
+    "vk": "ВКонтакте",
+    "twitter": "Twitter",
+    "youtube": "YouTube",
+    "tiktok": "TikTok",
+    "other": "Другое"
+  },
+  "FileUploader": {
+    "dropTheFilesHere": "Перетащите файлы сюда",
+    "dragAndDropFilesHere": "Перетащите файлы сюда или нажмите для выбора",
+    "youCanUpload": "Вы можете загрузить",
+    "files": "файлы",
+    "upTo": "до",
+    "each": "каждый"
   }
 }

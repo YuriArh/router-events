@@ -29,10 +29,11 @@ export const list = query({
     date: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const events = args.category
+    const selectedCategory = args.category;
+    const events = selectedCategory
       ? await ctx.db
           .query("events")
-          .withIndex("byCategory", (q) => q.eq("category", args.category!))
+          .withIndex("byCategory", (q) => q.eq("category", selectedCategory))
           .order("desc")
           .collect()
       : await ctx.db.query("events").order("desc").collect();
@@ -45,16 +46,20 @@ export const list = query({
           ? { name: organizer.name, email: organizer.image }
           : null;
 
-        if (!event.images)
+        if (!event.images || event.images.length === 0)
           return {
             ...event,
+            images: [],
             organizer: organaizerOrNull,
           };
-        const titleImage = await ctx.storage.getUrl(event.images[0]);
+
+        const images = await Promise.all(
+          event.images.map(async (id) => await ctx.storage.getUrl(id))
+        );
 
         return {
           ...event,
-          titleImage,
+          images,
           organizer: organaizerOrNull,
         };
       })
@@ -85,12 +90,24 @@ export const getInBounds = query({
     // Get image URLs for each event
     const extendedEvents = await Promise.all(
       boundedEvents.map(async (event) => {
-        if (!event.images) return { ...event, titleImage: null };
-        const titleImage = await ctx.storage.getUrl(event.images[0]);
         const organizer = await ctx.db.get(event.organizerId);
+
+        if (!event.images || event.images.length === 0)
+          return {
+            ...event,
+            images: [],
+            organizer: organizer
+              ? { name: organizer.name, email: organizer.image }
+              : null,
+          };
+
+        const images = await Promise.all(
+          event.images.map(async (id) => await ctx.storage.getUrl(id))
+        );
+
         return {
           ...event,
-          titleImage,
+          images,
           organizer: organizer
             ? { name: organizer.name, email: organizer.image }
             : null,
@@ -122,6 +139,15 @@ export const create = mutation({
       }),
       images: v.optional(v.array(v.id("_storage"))),
       category: v.optional(categories),
+      socialLinks: v.optional(
+        v.array(
+          v.object({
+            type: v.string(),
+            url: v.string(),
+            label: v.optional(v.string()),
+          })
+        )
+      ),
     }),
   },
   handler: async (ctx, { event }) => {
@@ -198,5 +224,13 @@ export const isAttending = query({
 export const generateUploadUrl = mutation({
   handler: async (ctx) => {
     return await ctx.storage.generateUploadUrl();
+  },
+});
+
+export const getImageUrl = query({
+  args: { storageId: v.id("_storage") },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    return await ctx.storage.getUrl(args.storageId);
   },
 });

@@ -17,8 +17,8 @@ export const ProfilePicture = ({ id }: { id: Id<"users"> }) => {
   return (
     <div className="flex items-center gap-2">
       <Avatar>
-        <AvatarImage src={user?.imageUrl} />
-        <AvatarFallback>{user?.name.slice(0, 2)}</AvatarFallback>
+        <AvatarImage src={user?.image} />
+        <AvatarFallback>{user?.name?.slice(0, 2)}</AvatarFallback>
       </Avatar>
       <p className="text-sm font-medium">{user?.name}</p>
     </div>

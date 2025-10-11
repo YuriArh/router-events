@@ -9,6 +9,7 @@ import { cn, formatBytes } from "~/lib/utils";
 import { ScrollArea } from "./scroll-area";
 import { Button } from "./button";
 import { Progress } from "./progress";
+import { useTranslation } from "react-i18next";
 
 interface FileUploaderProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
@@ -103,6 +104,8 @@ export function FileUploader(props: FileUploaderProps) {
     ...dropzoneProps
   } = props;
 
+  const { t } = useTranslation();
+
   const [files, setFiles] = React.useState<File[]>([]);
 
   const onDrop = React.useCallback(
@@ -156,7 +159,7 @@ export function FileUploader(props: FileUploaderProps) {
 
   function onRemove(index: number) {
     if (!files) return;
-    const newFiles = files.filter((file: File, i: number) => i !== index);
+    const newFiles = files.filter((_, i: number) => i !== index);
     setFiles(newFiles);
     onValueChange?.(newFiles);
   }
@@ -208,7 +211,7 @@ export function FileUploader(props: FileUploaderProps) {
                   />
                 </div>
                 <p className="font-medium text-muted-foreground">
-                  Drop the files here
+                  {t("FileUploader.dropTheFilesHere")}
                 </p>
               </div>
             ) : (
@@ -221,18 +224,22 @@ export function FileUploader(props: FileUploaderProps) {
                 </div>
                 <div className="flex flex-col gap-px">
                   <p className="font-medium text-muted-foreground">
-                    Drag {`'n'`} drop files here, or click to select files
+                    {t("FileUploader.dragAndDropFilesHere")}
                   </p>
                   <p className="text-sm text-muted-foreground/70">
-                    You can upload
+                    {t("FileUploader.youCanUpload")}
                     {maxFileCount > 1
                       ? ` ${
                           maxFileCount === Number.POSITIVE_INFINITY
                             ? "multiple"
                             : maxFileCount
                         }
-                      files (up to ${formatBytes(maxSize)} each)`
-                      : ` a file with ${formatBytes(maxSize)}`}
+                      ${t("FileUploader.files")} (${t(
+                          "FileUploader.upTo"
+                        )} ${formatBytes(maxSize)} ${t("FileUploader.each")} )`
+                      : `${t("FileUploader.aFileWith")} ${formatBytes(
+                          maxSize
+                        )}`}
                   </p>
                 </div>
               </div>

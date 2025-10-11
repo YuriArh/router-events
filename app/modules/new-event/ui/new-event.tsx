@@ -39,13 +39,23 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/shared/ui/dialog";
+import { CategorySelector } from "~/modules/event/ui/category-selector";
+import { SocialLinksManager } from "~/shared/ui/social-links-manager";
+import { UploadedImagesGrid } from "~/shared/ui/uploaded-images-grid";
+
+type Category =
+  | "music"
+  | "sports"
+  | "art"
+  | "food"
+  | "science"
+  | "technology"
+  | "other";
 
 const formSchema = z.object({
-  title: z.string().min(1).min(4).max(25),
+  title: z.string().min(4, "Минимум 4 символа").max(25, "Максимум 25 символов"),
   description: z.string().optional(),
-
   date: z.coerce.date().optional(),
-
   address: z.object({
     formatted: z.string(),
     lat: z.number(),
@@ -54,6 +64,34 @@ const formSchema = z.object({
     country: z.string().optional(),
     state: z.string().optional(),
   }),
+  category: z.enum([
+    "music",
+    "sports",
+    "art",
+    "food",
+    "science",
+    "technology",
+    "other",
+  ]),
+  socialLinks: z
+    .array(
+      z.object({
+        type: z.enum([
+          "whatsapp",
+          "telegram",
+          "instagram",
+          "facebook",
+          "vk",
+          "twitter",
+          "youtube",
+          "tiktok",
+          "other",
+        ]),
+        url: z.string(),
+        label: z.string().optional(),
+      })
+    )
+    .optional(),
 });
 
 export const NewEvent = () => {
@@ -75,6 +113,10 @@ export const NewEvent = () => {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      category: "other",
+      socialLinks: [],
+    },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -85,6 +127,8 @@ export const NewEvent = () => {
         date: values.date?.toISOString(),
         address: values.address,
         images: storageIds,
+        category: values.category,
+        socialLinks: values.socialLinks,
       },
     });
   }
@@ -126,6 +170,10 @@ export const NewEvent = () => {
     }
   }
 
+  function handleRemoveImage(index: number) {
+    setStorageIds((prev) => prev.filter((_, i) => i !== index));
+  }
+
   return (
     <Dialog
       open={searchParams.get("newEvent") === "true"}
@@ -134,7 +182,7 @@ export const NewEvent = () => {
       <DialogTrigger asChild>
         <Button>{t("NewEvent.create")}</Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{t("NewEvent.title")}</DialogTitle>
           <DialogDescription>{t("NewEvent.description")}</DialogDescription>
@@ -142,18 +190,24 @@ export const NewEvent = () => {
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="w-full space-y-4"
+            className=" w-full space-y-4"
           >
             <FormField
               control={form.control}
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>title</FormLabel>
+                  <FormLabel>{t("NewEvent.form.title")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="supa jusa" type="text" {...field} />
+                    <Input
+                      placeholder={t("NewEvent.form.titlePlaceholder")}
+                      type="text"
+                      {...field}
+                    />
                   </FormControl>
-                  <FormDescription>title of event</FormDescription>
+                  <FormDescription>
+                    {t("NewEvent.form.titleDescription")}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -164,15 +218,39 @@ export const NewEvent = () => {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>{t("NewEvent.form.description")}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Placeholder"
+                      placeholder={t("NewEvent.form.descriptionPlaceholder")}
                       className="resize-none"
                       {...field}
                     />
                   </FormControl>
-                  <FormDescription>description of event</FormDescription>
+                  <FormDescription>
+                    {t("NewEvent.form.descriptionDescription")}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("NewEvent.form.category")}</FormLabel>
+                  <FormControl>
+                    <CategorySelector
+                      selectedCategory={field.value as Category}
+                      onCategoryChange={(category) => {
+                        field.onChange(category || "other");
+                      }}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t("NewEvent.form.categoryDescription")}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -183,21 +261,23 @@ export const NewEvent = () => {
               name="date"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>event date</FormLabel>
+                  <FormLabel>{t("NewEvent.form.date")}</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           variant={"outline"}
                           className={cn(
-                            "w-[240px] pl-3 text-left font-normal",
+                            "w-full pl-3 text-left font-normal",
                             !field.value && "text-muted-foreground"
                           )}
                         >
                           {field.value ? (
                             format(field.value, "PPP")
                           ) : (
-                            <span>Pick a date</span>
+                            <span>
+                              {t("NewEvent.form.datePickPlaceholder")}
+                            </span>
                           )}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
@@ -212,7 +292,9 @@ export const NewEvent = () => {
                       />
                     </PopoverContent>
                   </Popover>
-
+                  <FormDescription>
+                    {t("NewEvent.form.dateDescription")}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -223,32 +305,80 @@ export const NewEvent = () => {
               name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Адрес</FormLabel>
+                  <FormLabel>{t("NewEvent.form.address")}</FormLabel>
                   <FormControl>
                     <AddressAutocomplete
                       value={field.value?.formatted || ""}
                       onChange={(address) => {
                         field.onChange(address);
                       }}
-                      placeholder="Введите адрес события..."
+                      placeholder={t("NewEvent.form.addressPlaceholder")}
                     />
                   </FormControl>
                   <FormDescription>
-                    Выберите адрес из предложенных вариантов
+                    {t("NewEvent.form.addressDescription")}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <FileUploader
-              multiple={true}
-              maxFileCount={10}
-              onUpload={handleSendImage}
+            <FormField
+              control={form.control}
+              name="socialLinks"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("NewEvent.form.socialLinks")}</FormLabel>
+                  <FormControl>
+                    <SocialLinksManager
+                      value={field.value || []}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t("NewEvent.form.socialLinksDescription")}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
 
+            <div className="space-y-3">
+              <div>
+                <FormLabel>
+                  {t("NewEvent.form.images")}
+                  {storageIds.length > 0 && (
+                    <span className="ml-1 text-sm text-muted-foreground">
+                      ({storageIds.length}/10)
+                    </span>
+                  )}
+                </FormLabel>
+              </div>
+
+              {/* Сетка загруженных изображений */}
+              {storageIds.length > 0 && (
+                <UploadedImagesGrid
+                  storageIds={storageIds}
+                  onRemove={handleRemoveImage}
+                />
+              )}
+
+              {/* FileUploader - показывается только если не достигнут лимит */}
+              {storageIds.length < 10 && (
+                <FileUploader
+                  multiple={true}
+                  maxFileCount={10 - storageIds.length}
+                  onUpload={handleSendImage}
+                />
+              )}
+
+              <FormDescription>
+                {t("NewEvent.form.imagesDescription")}
+              </FormDescription>
+            </div>
+
             <LoadingButton type="submit" loading={isPending}>
-              create event
+              {t("NewEvent.form.submit")}
             </LoadingButton>
           </form>
         </Form>

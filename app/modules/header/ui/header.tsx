@@ -1,9 +1,7 @@
 import { Authenticated, Unauthenticated, useConvexAuth } from "convex/react";
 import { useNavigate } from "react-router";
 import { NewEvent } from "~/modules/new-event";
-import { AuthModal, UserButton, UserProfile } from "~/modules/auth";
-import { Button } from "~/shared/ui/button";
-import { useState } from "react";
+import { AuthModal, UserProfile } from "~/modules/auth";
 
 export const Header = () => {
   const navigate = useNavigate();

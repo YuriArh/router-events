@@ -1,4 +1,3 @@
-import { Theme, useTheme } from "remix-themes";
 import MapGL, {
   GeolocateControl,
   ScaleControl,
@@ -11,12 +10,12 @@ import { useLocalStorage } from "~/shared/hooks/use-local-storage";
 import { getPublicEnv } from "env.common";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { memo, useRef, useState } from "react";
-import type { Doc } from "convex/_generated/dataModel";
-import { MarkerPopup } from "../components/MarkerPopup";
 import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import { convexQuery } from "@convex-dev/react-query";
+import { MapMarker } from "../components/MapMarker";
+import type { IEvent } from "~/modules/event/model";
 
 const API_KEY = getPublicEnv().maptilerKey;
 
@@ -28,15 +27,12 @@ type CustomMapProps = {
 };
 
 function CustomMap({ setBounds }: CustomMapProps) {
-  const [theme] = useTheme();
   const mapRef = useRef<MapRef>(null);
   const [lngLat, setLngLat] = useLocalStorage("lngLat", {
     longitude: 0,
     latitude: 0,
   });
-  const [selectedEvent, setSelectedEvent] = useState<Doc<"events"> | null>(
-    null
-  );
+  const [selectedEvent, setSelectedEvent] = useState<IEvent | null>(null);
   const navigate = useNavigate();
 
   const handleMove = (e?: ViewStateChangeEvent) => {
@@ -95,14 +91,16 @@ function CustomMap({ setBounds }: CustomMapProps) {
               offset={40}
               onClose={() => setSelectedEvent(null)}
               closeButton={false}
-              style={{ width: 500, padding: 0 }}
-              className="rounded-2xl"
+              maxWidth="320px"
+              style={{ padding: 0, borderRadius: 20 }}
+              className="rounded-2xl shadow-2xl border overflow-hidden w-[500px]"
             >
-              <MarkerPopup
+              <MapMarker
                 marker={event}
                 onEventClick={() => {
                   navigate(`/event/${event._id}`);
                 }}
+                onClose={() => setSelectedEvent(null)}
               />
             </Popup>
           )}

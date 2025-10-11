@@ -1,6 +1,9 @@
 import type { Doc } from "convex/_generated/dataModel";
 
-export type IEvent = Doc<"events"> & {
-  titleImage: string | null;
-  organizer: { name: string; email: string } | null;
+export type IEvent = Omit<Doc<"events">, "images"> & {
+  images: (string | null)[];
+  organizer: {
+    name: string | undefined;
+    email: string | undefined;
+  } | null;
 };

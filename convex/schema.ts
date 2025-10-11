@@ -28,6 +28,15 @@ export default defineSchema({
     category: categories,
     date: v.optional(v.string()),
     images: v.optional(v.array(v.id("_storage"))),
+    socialLinks: v.optional(
+      v.array(
+        v.object({
+          type: v.string(),
+          url: v.string(),
+          label: v.optional(v.string()),
+        })
+      )
+    ),
     attendeeCount: v.number(),
     organizerId: v.id("users"),
     time: v.optional(v.string()),

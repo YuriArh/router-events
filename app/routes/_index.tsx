@@ -5,9 +5,9 @@ import { Header } from "~/modules/header";
 import { useQuery } from "@tanstack/react-query";
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "convex/_generated/api";
-import type { Doc } from "convex/_generated/dataModel";
 import { useState } from "react";
 import { EventCard } from "~/modules/event";
+import { CategorySelector } from "~/modules/event/ui/category-selector";
 import type { IEvent } from "~/modules/event/model";
 
 export const links: Route.LinksFunction = () => [
@@ -27,6 +27,17 @@ export default function Home() {
     _ne: { lat: number; lng: number };
   } | null>(null);
 
+  const [selectedCategory, setSelectedCategory] = useState<
+    | "music"
+    | "sports"
+    | "art"
+    | "food"
+    | "science"
+    | "technology"
+    | "other"
+    | null
+  >(null);
+
   const { data: events } = useQuery({
     ...convexQuery(
       api.events.getInBounds,
@@ -42,17 +53,32 @@ export default function Home() {
     placeholderData: (prev) => prev,
   });
 
+  // Фильтруем события по выбранной категории
+  const filteredEvents = selectedCategory
+    ? events?.filter((event) => event.category === selectedCategory)
+    : events;
+
   return (
     <>
       <Header />
-      <div className="relative flex flex-1 w-full">
-        <div className="w-1/4 p-4 overflow-y-auto">
-          <h2 className="text-xl font-bold mb-4">Events in View</h2>
+      <div className="relative flex flex-1 w-full bg-gray-50">
+        <div className="w-1/2 p-6 overflow-y-auto">
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              События рядом с вами
+            </h2>
+            <CategorySelector
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+            />
+          </div>
 
-          <EventList events={events} />
+          <EventList events={filteredEvents} />
         </div>
-        <div className="w-3/4">
-          <MyMap setBounds={setBounds} />
+        <div className="w-1/2 p-6">
+          <div className="h-full rounded-xl overflow-hidden shadow-lg">
+            <MyMap setBounds={setBounds} />
+          </div>
         </div>
       </div>
     </>
@@ -60,9 +86,8 @@ export default function Home() {
 }
 
 function EventList({ events }: { events: IEvent[] | undefined }) {
-  // events теперь можно фильтровать по bounds, если нужно, либо просто использовать events
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-2 gap-4">
       {events?.map((event) => (
         <EventCard key={event._id} event={event} />
       ))}

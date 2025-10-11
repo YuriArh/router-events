@@ -9,6 +9,73 @@
   "NewEvent": {
     "create": "Create event",
     "title": "New event",
-    "description": "Create new event"
+    "description": "Create new event",
+    "form": {
+      "title": "Title",
+      "titlePlaceholder": "e.g., Rooftop Concert",
+      "titleDescription": "Short event title (4 to 25 characters)",
+      "description": "Description",
+      "descriptionPlaceholder": "Tell us more about the event...",
+      "descriptionDescription": "Detailed information about the event",
+      "date": "Event Date",
+      "datePickPlaceholder": "Pick a date",
+      "dateDescription": "When the event will take place",
+      "address": "Address",
+      "addressPlaceholder": "Enter event address...",
+      "addressDescription": "Select address from suggestions",
+      "category": "Category",
+      "categoryDescription": "Choose appropriate category for your event",
+      "socialLinks": "Social Media",
+      "socialLinksDescription": "Add links to connect with organizer",
+      "images": "Photos",
+      "imagesDescription": "Upload up to 10 event photos",
+      "submit": "Create event"
+    }
+  },
+  "Event": {
+    "details": "Event details",
+    "date": "Date",
+    "organizer": "Organizer",
+    "description": "Description",
+    "location": "Location",
+    "photos": "Photos",
+    "loading": "Loading...",
+    "notFound": "Event not found",
+    "hostedBy": "Hosted by",
+    "join": "Join",
+    "share": "Share",
+    "address": "Address"
+  },
+  "Categories": {
+    "all": "All",
+    "music": "Music",
+    "sports": "Sports",
+    "art": "Art",
+    "food": "Food",
+    "science": "Science",
+    "technology": "Technology",
+    "other": "Other"
+  },
+  "SocialLinks": {
+    "add": "Enter link and press +",
+    "placeholder": "https://...",
+    "whatsapp": "WhatsApp",
+    "telegram": "Telegram",
+    "instagram": "Instagram",
+    "facebook": "Facebook",
+    "vk": "VKontakte",
+    "twitter": "Twitter",
+    "youtube": "YouTube",
+    "tiktok": "TikTok",
+    "other": "Other"
+  },
+  "FileUploader": {
+    "dropTheFilesHere": "Drop the files here",
+    "dragAndDropFilesHere": "Drag and drop files here, or click to select files",
+    "youCanUpload": "You can upload",
+    "files": "files",
+    "upTo": "up to",
+    "each": "each",
+    "aFileWith": "a file with"
   }
 }
