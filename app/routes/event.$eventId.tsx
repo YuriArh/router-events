@@ -60,7 +60,16 @@ export default function EventRoute({ loaderData }: Route.ComponentProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { t } = useTranslation();
 
-  const toggleAttendance = useMutation(api.events.toggleAttendance);
+  const toggleAttendance = useMutation(
+    api.events.toggleAttendance
+  ).withOptimisticUpdate((state, { eventId }) => {
+    const currentValue = state.getQuery(api.events.isAttending, { eventId });
+
+    if (currentValue) {
+      state.setQuery(api.events.isAttending, { eventId }, !currentValue);
+    }
+  });
+
   const isAttending = useConvexQuery(api.events.isAttending, {
     eventId: eventId as Id<"events">,
   });

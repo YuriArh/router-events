@@ -1,5 +1,5 @@
-import type { categories } from "convex/schema";
 import { cn } from "~/shared/lib/utils";
+import type { Category } from "~/shared/model/Category";
 
 /**
  * Иконки для категорий событий
@@ -12,6 +12,7 @@ const categoryIcons = {
   science: "🔬",
   technology: "💻",
   other: "📅",
+  all: "🔍",
 } as const;
 
 /**
@@ -25,9 +26,8 @@ const categoryLabels = {
   science: "Наука",
   technology: "Технологии",
   other: "Другое",
+  all: "Все",
 } as const;
-
-type Category = typeof categories.type;
 
 interface CategorySelectorProps {
   /** Выбранная категория */
@@ -53,6 +53,7 @@ export function CategorySelector({
     "science",
     "technology",
     "other",
+    "all",
   ];
 
   const handleCategoryClick = (category: Category | null) => {

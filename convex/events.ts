@@ -25,18 +25,19 @@ export const get = query({
 
 export const list = query({
   args: {
-    category: v.optional(categories),
+    category: v.optional(v.union(categories, v.literal("all"))),
     date: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const selectedCategory = args.category;
-    const events = selectedCategory
-      ? await ctx.db
-          .query("events")
-          .withIndex("byCategory", (q) => q.eq("category", selectedCategory))
-          .order("desc")
-          .collect()
-      : await ctx.db.query("events").order("desc").collect();
+    const events =
+      selectedCategory && selectedCategory !== "all"
+        ? await ctx.db
+            .query("events")
+            .withIndex("byCategory", (q) => q.eq("category", selectedCategory))
+            .order("desc")
+            .collect()
+        : await ctx.db.query("events").order("desc").collect();
 
     // Get image URLs for each event
     const enrichedEvents = await Promise.all(
@@ -75,9 +76,16 @@ export const getInBounds = query({
     minLng: v.number(),
     maxLat: v.number(),
     maxLng: v.number(),
+    category: v.optional(v.union(categories, v.literal("all"), v.null())),
   },
-  handler: async (ctx, { minLat, minLng, maxLat, maxLng }) => {
-    const events = await ctx.db.query("events").collect();
+  handler: async (ctx, { minLat, minLng, maxLat, maxLng, category }) => {
+    const events =
+      category && category !== "all"
+        ? await ctx.db
+            .query("events")
+            .withIndex("byCategory", (q) => q.eq("category", category))
+            .collect()
+        : await ctx.db.query("events").collect();
 
     const boundedEvents = events.filter(
       (event) =>

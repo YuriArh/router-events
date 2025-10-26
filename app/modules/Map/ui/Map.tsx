@@ -16,6 +16,7 @@ import { api } from "convex/_generated/api";
 import { convexQuery } from "@convex-dev/react-query";
 import { MapMarker } from "../components/MapMarker";
 import type { IEvent } from "~/modules/event/model";
+import type { Category } from "~/shared/model/Category";
 
 const API_KEY = getPublicEnv().maptilerKey;
 
@@ -24,9 +25,10 @@ type CustomMapProps = {
     _sw: { lat: number; lng: number };
     _ne: { lat: number; lng: number };
   }) => void;
+  category: Category | null;
 };
 
-function CustomMap({ setBounds }: CustomMapProps) {
+function CustomMap({ setBounds, category }: CustomMapProps) {
   const mapRef = useRef<MapRef>(null);
   const [lngLat, setLngLat] = useLocalStorage("lngLat", {
     longitude: 0,
@@ -56,7 +58,9 @@ function CustomMap({ setBounds }: CustomMapProps) {
     }
   };
 
-  const { data: events } = useQuery(convexQuery(api.events.list, {}));
+  const { data: events } = useQuery(
+    convexQuery(api.events.list, { category: category || "all" })
+  );
 
   return (
     <MapGL
@@ -71,7 +75,7 @@ function CustomMap({ setBounds }: CustomMapProps) {
       }}
       mapStyle={`https://api.maptiler.com/maps/basic-v2/style.json?key=${API_KEY}`}
     >
-      <GeolocateControl />
+      <GeolocateControl position="bottom-left" />
       <ScaleControl />
       {events?.map((event) => (
         <div key={event._id}>

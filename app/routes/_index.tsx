@@ -2,13 +2,16 @@ import { MyMap } from "~/modules/Map";
 import type { Route } from "./+types/_index";
 import { markerStylesheet } from "~/modules/Map";
 import { Header } from "~/modules/header";
-import { useQuery } from "@tanstack/react-query";
-import { convexQuery } from "@convex-dev/react-query";
-import { api } from "convex/_generated/api";
 import { useState } from "react";
-import { EventCard } from "~/modules/event";
 import { CategorySelector } from "~/modules/event/ui/category-selector";
-import type { IEvent } from "~/modules/event/model";
+import { useMediaQuery } from "~/shared/hooks/use-media-query";
+import {
+  MOBILE_BREAKPOINT,
+  EventsDrawer,
+  EventList,
+} from "~/modules/events-list";
+import type { Category } from "~/shared/model/Category";
+import type { MapBounds } from "~/shared/model/Map";
 
 export const links: Route.LinksFunction = () => [
   { rel: "stylesheet", href: markerStylesheet },
@@ -21,47 +24,20 @@ export function meta() {
   ];
 }
 
+type SelectedCategory = Category | null;
+
 export default function Home() {
-  const [bounds, setBounds] = useState<{
-    _sw: { lat: number; lng: number };
-    _ne: { lat: number; lng: number };
-  } | null>(null);
-
-  const [selectedCategory, setSelectedCategory] = useState<
-    | "music"
-    | "sports"
-    | "art"
-    | "food"
-    | "science"
-    | "technology"
-    | "other"
-    | null
-  >(null);
-
-  const { data: events } = useQuery({
-    ...convexQuery(
-      api.events.getInBounds,
-      bounds?._sw && bounds?._ne
-        ? {
-            minLat: bounds._sw.lat,
-            maxLat: bounds._ne.lat,
-            minLng: bounds._sw.lng,
-            maxLng: bounds._ne.lng,
-          }
-        : "skip"
-    ),
-    placeholderData: (prev) => prev,
-  });
-
-  // Фильтруем события по выбранной категории
-  const filteredEvents = selectedCategory
-    ? events?.filter((event) => event.category === selectedCategory)
-    : events;
+  const isMobile = useMediaQuery(MOBILE_BREAKPOINT);
+  const [bounds, setBounds] = useState<MapBounds | null>(null);
+  const [selectedCategory, setSelectedCategory] =
+    useState<SelectedCategory>(null);
 
   return (
     <>
       <Header />
-      <div className="relative flex w-full h-[calc(100vh-4rem)] bg-gray-50">
+
+      {/* Desktop Layout: одновременно список и карта */}
+      <div className="hidden md:flex relative w-full h-[calc(100vh-4rem)] bg-gray-50">
         <div className="w-1/2 overflow-y-auto">
           <div className="p-6">
             <div className="mb-6">
@@ -74,25 +50,38 @@ export default function Home() {
               />
             </div>
 
-            <EventList events={filteredEvents} />
+            <EventList bounds={bounds} selectedCategory={selectedCategory} />
           </div>
         </div>
         <div className="w-1/2 pr-6 py-6">
           <div className="h-full rounded-xl overflow-hidden shadow-lg">
-            <MyMap setBounds={setBounds} />
+            <MyMap setBounds={setBounds} category={selectedCategory} />
           </div>
         </div>
       </div>
-    </>
-  );
-}
 
-function EventList({ events }: { events: IEvent[] | undefined }) {
-  return (
-    <div className="grid grid-cols-2 gap-4">
-      {events?.map((event) => (
-        <EventCard key={event._id} event={event} />
-      ))}
-    </div>
+      {/* Mobile Layout: карта на весь экран + drawer снизу */}
+      {isMobile && (
+        <div className="w-full h-[calc(100vh-4rem)] flex flex-col flex-1">
+          {/* Category Selector */}
+          <div className="bg-white rounded-lg shadow-lg p-2">
+            <CategorySelector
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+            />
+          </div>
+
+          {/* Map */}
+          <div className="w-full flex-1 p-6 pb-[100px]">
+            <div className="h-full rounded-xl overflow-hidden shadow-lg">
+              <MyMap setBounds={setBounds} category={selectedCategory} />
+            </div>
+          </div>
+
+          {/* Drawer с событиями */}
+          <EventsDrawer bounds={bounds} selectedCategory={selectedCategory} />
+        </div>
+      )}
+    </>
   );
 }

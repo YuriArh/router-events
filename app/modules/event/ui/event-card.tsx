@@ -38,8 +38,7 @@ export function EventCard({ event }: EventCardProps) {
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-[1.02]">
-      <button
-        type="button"
+      <div
         onClick={handleCardClick}
         onKeyUp={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -192,7 +191,7 @@ export function EventCard({ event }: EventCardProps) {
             )}
           </div>
         </div>
-      </button>
+      </div>
     </div>
   );
 }
