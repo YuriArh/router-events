@@ -5,7 +5,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "~/shared/ui/drawer";
-import { SNAP_POINTS } from "../constants";
+import { DRAWER_HEIGHT, SNAP_POINTS } from "../constants";
 import { EventList } from "./events-list";
 import type { MapBounds } from "~/shared/model/Map";
 import type { Category } from "~/shared/model/Category";
@@ -61,7 +61,7 @@ function EventsDrawerComponent({
       }}
     >
       <DrawerContent
-        className="bg-white h-full !max-h-[calc(100vh-4rem)]"
+        className={`bg-white h-full !max-h-[${DRAWER_HEIGHT}]`}
         onClick={() => {
           setSnap(SNAP_POINTS.FULL);
         }}

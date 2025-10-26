@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useConvexAuth } from "convex/react";
 import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -23,7 +22,6 @@ export const UserButton = ({ onSignOut }: UserButtonProps) => {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signOut } = useAuthActions();
   const user = useQuery(api.users.current);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   if (isLoading) {
     return <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />;
@@ -63,7 +61,7 @@ export const UserButton = ({ onSignOut }: UserButtonProps) => {
             </div>
           </div>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setIsProfileOpen(true)}>
+          <DropdownMenuItem>
             <User className="mr-2 h-4 w-4" />
             <span>Профиль</span>
           </DropdownMenuItem>
@@ -79,10 +77,7 @@ export const UserButton = ({ onSignOut }: UserButtonProps) => {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <UserProfile
-        isOpen={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
-      />
+      <UserProfile />
     </>
   );
 };
