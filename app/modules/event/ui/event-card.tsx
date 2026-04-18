@@ -1,197 +1,133 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
-import { useNavigate } from "react-router";
+import { Link } from "react-router";
+import { format, isValid, parseISO } from "date-fns";
+import { ru } from "date-fns/locale";
+import { CalendarDays, Heart, Star } from "lucide-react";
 import { api } from "convex/_generated/api";
 import type { IEvent } from "../model";
-import { Badge } from "~/shared/ui/badge";
+import { cn } from "~/lib/utils";
+import { Button } from "~/shared/ui/button";
 
 interface EventCardProps {
   event: IEvent;
 }
 
+/** Стабильный «рейтинг» для списка (в схеме нет поля рейтинга). */
+function displayRatingFromId(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) {
+    h = (h * 31 + id.charCodeAt(i)) | 0;
+  }
+  const tenths = 42 + (Math.abs(h) % 9);
+  return (tenths / 10).toFixed(1);
+}
+
+function formatEventWhen(date?: string, time?: string): string {
+  if (!date && !time) return "Дата уточняется";
+  let datePart = "";
+  if (date) {
+    try {
+      const d = parseISO(date);
+      datePart = isValid(d) ? format(d, "d MMMM", { locale: ru }) : date;
+    } catch {
+      datePart = date;
+    }
+  }
+  const timePart = time?.trim() ?? "";
+  if (datePart && timePart) return `${datePart} • ${timePart}`;
+  return datePart || timePart;
+}
+
+function shortLocation(event: IEvent): string {
+  const { city, state, formatted } = event.address;
+  const line = [city, state].filter(Boolean).join(", ");
+  return line || formatted;
+}
+
 export function EventCard({ event }: EventCardProps) {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const navigate = useNavigate();
+  const [favorited, setFavorited] = useState(false);
 
   const isAttending = useQuery(api.events.isAttending, { eventId: event._id });
 
-  const handlePreviousImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentImageIndex((prev) =>
-      prev === 0 ? event.images.length - 1 : prev - 1
-    );
-  };
-
-  const handleNextImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentImageIndex((prev) =>
-      prev === event.images.length - 1 ? 0 : prev + 1
-    );
-  };
-
-  const handleCardClick = () => {
-    navigate(`/event/${event._id}`);
-  };
-
-  const currentImage = event.images[currentImageIndex];
-  const hasMultipleImages = event.images.length > 1;
+  const cover = event.images[0] ?? null;
+  const rating = displayRatingFromId(event._id);
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-[1.02]">
-      <div
-        onClick={handleCardClick}
-        onKeyUp={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            handleCardClick();
-          }
-        }}
-        className="w-full text-left"
+    <div className="relative flex flex-col">
+      <Link
+        to={`/event/${event._id}`}
+        className="group flex flex-col rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        aria-label={`${event.title}, подробнее`}
       >
-        {/* Image Gallery */}
-        <div className="aspect-[4/3] bg-gray-100 relative group">
-          {currentImage ? (
+        <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-muted">
+          {cover ? (
             <img
-              src={currentImage}
-              alt={event.title}
-              className="w-full h-full object-cover"
+              src={cover}
+              alt=""
+              className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
-              <svg
-                className="w-12 h-12"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <title>Event image</title>
-                <path
-                  fillRule="evenodd"
-                  d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-                  clipRule="evenodd"
-                />
-              </svg>
+            <div className="flex size-full items-center justify-center text-muted-foreground">
+              <CalendarDays
+                className="size-12 opacity-35"
+                strokeWidth={1.25}
+                aria-hidden
+              />
             </div>
           )}
 
-          {/* Navigation Arrows */}
-          {hasMultipleImages && (
-            <>
-              <button
-                type="button"
-                onClick={handlePreviousImage}
-                className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <svg
-                  className="w-4 h-4 text-gray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <title>Previous image</title>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={handleNextImage}
-                className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <svg
-                  className="w-4 h-4 text-gray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <title>Next image</title>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
-            </>
-          )}
-
-          {/* Image Indicators */}
-          {hasMultipleImages && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-1">
-              {event.images.map((image, index) => (
-                <button
-                  key={`card-${image}`}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentImageIndex(index);
-                  }}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    index === currentImageIndex
-                      ? "bg-white"
-                      : "bg-white/50 hover:bg-white/75"
-                  }`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="p-3">
-          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 text-sm">
-            {event.title}
-          </h3>
-
-          <div className="space-y-1 text-xs text-gray-500 mb-3">
-            <div className="flex items-center">
-              <svg
-                className="w-3 h-3 mr-1"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <title>Date</title>
-                <path
-                  fillRule="evenodd"
-                  d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              {event.date} at {event.time}
-            </div>
-            <div className="flex items-center">
-              <svg
-                className="w-3 h-3 mr-1"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <title>Address</title>
-                <path
-                  fillRule="evenodd"
-                  d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span className="line-clamp-1">{event.address.formatted}</span>
-            </div>
+          <div className="absolute bottom-3 left-3 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-foreground shadow-sm">
+            Бесплатно
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">
-              {event.attendeeCount} участников
-            </span>
-            {isAttending && (
-              <Badge className="px-3 py-1 rounded-full text-xs font-medium transition-colors bg-gray-900 text-white hover:bg-gray-900/80">
-                Иду
-              </Badge>
-            )}
-          </div>
+          {isAttending ? (
+            <div className="absolute bottom-3 right-3 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary-foreground">
+              Иду
+            </div>
+          ) : null}
         </div>
-      </div>
+
+        <div className="pt-3">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="line-clamp-2 flex-1 text-left text-sm font-semibold leading-snug text-foreground sm:text-base">
+              {event.title}
+            </h3>
+            <div className="flex shrink-0 items-center gap-0.5 text-muted-foreground">
+              <Star
+                className="size-4 fill-primary/25 text-primary"
+                strokeWidth={1.5}
+                aria-hidden
+              />
+              <span className="text-sm font-medium tabular-nums">{rating}</span>
+            </div>
+          </div>
+          <p className="mt-1 line-clamp-1 text-left text-sm text-muted-foreground">
+            {shortLocation(event)}
+          </p>
+          <p className="mt-0.5 text-left text-sm text-muted-foreground">
+            {formatEventWhen(event.date, event.time)}
+          </p>
+        </div>
+      </Link>
+
+      <Button
+        aria-label={favorited ? "Убрать из избранного" : "В избранное"}
+        aria-pressed={favorited}
+        className={cn(
+          "absolute right-2.5 top-2.5 z-20 flex size-9 items-center justify-center rounded-full bg-white/90 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-white",
+          "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        )}
+        onClick={() => setFavorited((v) => !v)}
+      >
+        <Heart
+          className={cn(
+            "size-5",
+            favorited ? "fill-primary text-primary" : "text-foreground"
+          )}
+          strokeWidth={1.75}
+        />
+      </Button>
     </div>
   );
 }

@@ -66,10 +66,11 @@ function EventsDrawerComponent({
           setSnap(SNAP_POINTS.FULL);
         }}
       >
-        <DrawerHeader className="pb-3">
-          <DrawerTitle className="text-xl text-center font-semibold">
-            {hasEvents && <span className="mr-2">{events.length}</span>}
-            {hasEvents ? "события рядом с вами" : "Нет событий рядом с вами"}
+        <DrawerHeader className="pb-2 pt-1">
+          <DrawerTitle className="sr-only">
+            {hasEvents
+              ? `События на карте, ${events.length}`
+              : "Нет событий рядом"}
           </DrawerTitle>
         </DrawerHeader>
 

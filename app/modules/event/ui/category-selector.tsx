@@ -1,84 +1,133 @@
+import type { LucideIcon } from "lucide-react";
+import {
+  Cpu,
+  Dumbbell,
+  FlaskConical,
+  LayoutGrid,
+  MoreHorizontal,
+  Music,
+  Palette,
+  UtensilsCrossed,
+} from "lucide-react";
 import { cn } from "~/shared/lib/utils";
 import type { Category } from "~/shared/model/Category";
 
-/**
- * Иконки для категорий событий
- */
-const categoryIcons = {
-  music: "🎵",
-  sports: "⚽",
-  art: "🎨",
-  food: "🍽️",
-  science: "🔬",
-  technology: "💻",
-  other: "📅",
-  all: "🔍",
-} as const;
+type CategoryKey = NonNullable<Category>;
 
-/**
- * Лейблы категорий на русском языке
- */
-const categoryLabels = {
+const categoryOrder: CategoryKey[] = [
+  "all",
+  "music",
+  "technology",
+  "sports",
+  "art",
+  "food",
+  "science",
+  "other",
+];
+
+const categoryIcons: Record<CategoryKey, LucideIcon> = {
+  all: LayoutGrid,
+  music: Music,
+  sports: Dumbbell,
+  art: Palette,
+  food: UtensilsCrossed,
+  science: FlaskConical,
+  technology: Cpu,
+  other: MoreHorizontal,
+};
+
+const categoryLabels: Record<CategoryKey, string> = {
+  all: "Все события",
   music: "Музыка",
   sports: "Спорт",
   art: "Искусство",
   food: "Еда",
   science: "Наука",
-  technology: "Технологии",
+  technology: "Техно",
   other: "Другое",
-  all: "Все",
-} as const;
+};
 
 interface CategorySelectorProps {
-  /** Выбранная категория */
   selectedCategory?: Category | null;
-  /** Callback функция при изменении категории */
   onCategoryChange: (category: Category | null) => void;
+  /** Для фильтра на главной. В форме создания события — false (без пункта «Все»). */
+  showAllOption?: boolean;
+}
+
+function isItemActive(
+  category: CategoryKey,
+  selected: Category | null | undefined,
+  showAll: boolean
+): boolean {
+  if (category === "all") {
+    if (!showAll) return false;
+    return selected === null || selected === "all";
+  }
+  return selected === category;
 }
 
 /**
- * Компонент селектора категорий событий
- *
- * Горизонтальный скролл с кнопками категорий в стиле Airbnb
+ * Горизонтальная полоса категорий: иконка над подписью, активный пункт с подчёркиванием снизу.
  */
 export function CategorySelector({
   selectedCategory,
   onCategoryChange,
+  showAllOption = true,
 }: CategorySelectorProps) {
-  const categories: Category[] = [
-    "music",
-    "sports",
-    "art",
-    "food",
-    "science",
-    "technology",
-    "other",
-    "all",
-  ];
+  const categories = showAllOption
+    ? categoryOrder
+    : categoryOrder.filter((c) => c !== "all");
 
-  const handleCategoryClick = (category: Category | null) => {
+  const handleCategoryClick = (category: CategoryKey) => {
+    if (category === "all") {
+      onCategoryChange(null);
+      return;
+    }
     onCategoryChange(category);
   };
 
   return (
-    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-      {categories.map((category) => (
-        <button
-          key={category}
-          type="button"
-          onClick={() => handleCategoryClick(category)}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200",
-            "hover:scale-105 active:scale-95",
-            selectedCategory === category
-              ? "bg-gray-900 text-white shadow-md"
-              : "bg-white text-gray-700 hover:bg-gray-100 shadow-sm border border-gray-200"
-          )}
-        >
-          <span>{categoryIcons[category]}</span>
-          <span>{categoryLabels[category]}</span>
-        </button>
-      ))}
+    <div className=" bg-white py-2">
+      <div
+        className="scrollbar-hide -mb-px flex gap-1 overflow-x-auto px-2 sm:gap-2 sm:px-4"
+        role="tablist"
+        aria-label="Категории событий"
+      >
+        {categories.map((category) => {
+          const Icon = categoryIcons[category];
+          const active = isItemActive(
+            category,
+            selectedCategory,
+            showAllOption
+          );
+
+          return (
+            <button
+              key={category}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => handleCategoryClick(category)}
+              className={cn(
+                "flex min-w-[4.5rem] shrink-0 flex-col items-center gap-1 border-b-2 border-transparent px-2 py-1 transition-colors sm:min-w-[5rem] sm:px-3",
+                "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                active
+                  ? "border-foreground text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Icon
+                className="size-6 shrink-0 sm:size-6"
+                strokeWidth={active ? 2 : 1.75}
+                aria-hidden
+              />
+              <span className="max-w-[5.5rem] text-center text-[11px] font-medium leading-tight sm:text-xs">
+                {categoryLabels[category]}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

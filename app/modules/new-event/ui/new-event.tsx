@@ -240,6 +240,7 @@ export const NewEvent = () => {
               <FormLabel>{t("NewEvent.form.category")}</FormLabel>
               <FormControl>
                 <CategorySelector
+                  showAllOption={false}
                   selectedCategory={field.value as Category}
                   onCategoryChange={(category) => {
                     field.onChange(category || "other");

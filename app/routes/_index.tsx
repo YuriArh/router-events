@@ -33,55 +33,63 @@ export default function Home() {
     useState<SelectedCategory>(null);
 
   return (
-    <>
+    <div className="flex min-h-dvh flex-col overflow-hidden">
       <Header />
 
-      {/* Desktop Layout: одновременно список и карта */}
-      <div className="hidden md:flex relative w-full h-[calc(100vh-4rem)] bg-gray-50">
-        <div className="w-1/2 overflow-y-auto">
-          <div className="p-6">
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                События рядом с вами
-              </h2>
+      <main className="flex-1 min-h-0 overflow-hidden" aria-label="Events page">
+        {!isMobile ? (
+          <>
+            <CategorySelector
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+            />
+            <section className="h-full min-h-0 p-6 pt-4">
+              <div className="grid h-full min-h-0 grid-cols-1 gap-6 md:grid-cols-2">
+                <aside
+                  className="min-h-0 overflow-y-auto rounded-xl bg-muted/25"
+                  aria-label="Events list"
+                >
+                  <div className="p-4 sm:p-6">
+                    <EventList
+                      bounds={bounds}
+                      selectedCategory={selectedCategory}
+                    />
+                  </div>
+                </aside>
+
+                <section
+                  className="min-h-0 overflow-hidden rounded-xl"
+                  aria-label="Events map"
+                >
+                  <div className="h-full">
+                    <MyMap setBounds={setBounds} category={selectedCategory} />
+                  </div>
+                </section>
+              </div>
+            </section>
+          </>
+        ) : (
+          <section
+            className="flex h-full min-h-0 flex-col"
+            aria-label="Mobile events view"
+          >
+            <div className="shrink-0 bg-white p-2 shadow-sm">
               <CategorySelector
                 selectedCategory={selectedCategory}
                 onCategoryChange={setSelectedCategory}
               />
             </div>
 
-            <EventList bounds={bounds} selectedCategory={selectedCategory} />
-          </div>
-        </div>
-        <div className="w-1/2 pr-6 py-6">
-          <div className="h-full rounded-xl overflow-hidden shadow-lg">
-            <MyMap setBounds={setBounds} category={selectedCategory} />
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Layout: карта на весь экран + drawer снизу */}
-      {isMobile && (
-        <div className="w-full h-[calc(100vh-4rem)] flex flex-col flex-1">
-          {/* Category Selector */}
-          <div className="bg-white rounded-lg shadow-lg p-2">
-            <CategorySelector
-              selectedCategory={selectedCategory}
-              onCategoryChange={setSelectedCategory}
-            />
-          </div>
-
-          {/* Map */}
-          <div className="w-full flex-1 p-6 pb-[100px]">
-            <div className="h-full rounded-xl overflow-hidden shadow-lg">
-              <MyMap setBounds={setBounds} category={selectedCategory} />
+            <div className="min-h-0 flex-1 p-4 pb-24">
+              <div className="h-full overflow-hidden rounded-xl shadow-lg">
+                <MyMap setBounds={setBounds} category={selectedCategory} />
+              </div>
             </div>
-          </div>
 
-          {/* Drawer с событиями */}
-          <EventsDrawer bounds={bounds} selectedCategory={selectedCategory} />
-        </div>
-      )}
-    </>
+            <EventsDrawer bounds={bounds} selectedCategory={selectedCategory} />
+          </section>
+        )}
+      </main>
+    </div>
   );
 }
